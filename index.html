@@ -127,6 +127,19 @@
   .result-win{color:var(--win);}
   .result-loss{color:var(--loss);}
   .footnote{color:var(--muted);font-size:0.78rem;margin-top:6px;}
+  .chip-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;}
+  .chip{
+    flex:none;display:flex;align-items:center;gap:7px;
+    padding:9px 13px;border-radius:20px;
+    background:var(--panel-2);border:1px solid var(--border);
+    color:var(--muted);font-size:0.85rem;white-space:nowrap;cursor:pointer;
+  }
+  .chip.active{border-color:var(--win);color:var(--text);background:rgba(63,167,150,0.14);}
+  .chip .del{color:var(--loss);font-weight:700;padding:0 2px;}
+  .btn-new-series{
+    width:100%;margin-top:8px;background:transparent;border:1px dashed var(--border);
+    color:var(--muted);padding:11px;
+  }
 </style>
 </head>
 <body>
@@ -134,6 +147,15 @@
 
   <h1>Staking Ledger</h1>
   <p class="sub">Progressive-martingale plan at fixed odds: stakes grow 15% on each win, and rebuild after a loss to recover it. Three straight losses stops the plan.</p>
+
+  <section>
+    <h2>Series — switch between running sequences</h2>
+    <div class="panel" style="padding:12px 12px 6px">
+      <div class="chip-row" id="series-tabs"></div>
+      <button class="btn-new-series" id="btn-new-series">+ New series</button>
+      <p class="footnote" style="margin-top:8px">Double-tap a series name to rename it. Each series keeps its own settings, stake progress, and P&L — everything saves automatically on this device.</p>
+    </div>
+  </section>
 
   <section>
     <h2>Plan settings</h2>
@@ -192,7 +214,7 @@
   </section>
 
   <section>
-    <h2>Live simulator</h2>
+    <h2>Live simulator — <span id="active-series-label">Series 1</span></h2>
     <div class="panel">
       <div class="sim-top">
         <div>
@@ -243,32 +265,54 @@
 <script>
 const $ = id => document.getElementById(id);
 const inputs = ['in-odds','in-base-pct','in-growth','in-profit','in-maxloss','in-bankroll','in-continue'];
-
-function getParams(){
-  const bankroll = parseFloat($('in-bankroll').value) || 0;
-  const basePct = parseFloat($('in-base-pct').value) || 0;
-  const base = bankroll * basePct / 100;
-  return {
-    odds: parseFloat($('in-odds').value) || 1.5,
-    base,
-    basePct,
-    growth: parseFloat($('in-growth').value) || 0,
-    profitUnits: parseFloat($('in-profit').value) || 0,
-    maxLoss: parseInt($('in-maxloss').value) || 3,
-    bankroll,
-    continueMode: $('in-continue').value,
-  };
-}
+const STORAGE_KEY = 'stakingLedgerAppState_v1';
 
 function fmt(n){
   return n.toLocaleString(undefined,{maximumFractionDigits:2});
 }
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- settings / params ---------- */
+
+function defaultSettings(){
+  return { odds:1.5, basePct:15, growth:15, profitUnits:1, maxLoss:3, bankroll:1300, continueMode:'smooth' };
+}
+function readDOMSettings(){
+  return {
+    odds: parseFloat($('in-odds').value) || 1.5,
+    basePct: parseFloat($('in-base-pct').value) || 0,
+    growth: parseFloat($('in-growth').value) || 0,
+    profitUnits: parseFloat($('in-profit').value) || 0,
+    maxLoss: parseInt($('in-maxloss').value) || 3,
+    bankroll: parseFloat($('in-bankroll').value) || 0,
+    continueMode: $('in-continue').value,
+  };
+}
+function deriveParams(settings){
+  const base = settings.bankroll * settings.basePct / 100;
+  return Object.assign({}, settings, {base});
+}
+function getParams(){
+  return deriveParams(readDOMSettings());
+}
+function populateForm(settings){
+  $('in-odds').value = settings.odds;
+  $('in-base-pct').value = settings.basePct;
+  $('in-growth').value = settings.growth;
+  $('in-profit').value = settings.profitUnits;
+  $('in-maxloss').value = settings.maxLoss;
+  $('in-bankroll').value = settings.bankroll;
+  $('in-continue').value = settings.continueMode;
+}
+
+/* ---------- recovery math ---------- */
 
 function recoveryStake(cumulativeLoss, odds, profitUnits, base){
   const target = profitUnits * base;
   return (cumulativeLoss + target) / (odds - 1);
 }
-
 function runScenario(p, profitUnits){
   let cumulativeLoss = 0;
   let stake = p.base;
@@ -280,7 +324,6 @@ function runScenario(p, profitUnits){
   }
   return rows;
 }
-
 function renderRequirement(){
   const p = getParams();
   $('out-base-amount').value = fmt(p.base);
@@ -312,49 +355,89 @@ function renderRequirement(){
     + (currentOk
       ? 'Your current % covers three straight losses in both scenarios.'
       : 'Your current % is above the safe ceiling for at least one scenario — three straight losses would exceed your bankroll.');
-  return {reqA, reqB};
 }
+
+/* ---------- app state: multiple persisted series ---------- */
+
+let appState = null;
+let sim = null;
+
+function freshSim(base, bankroll){
+  return {
+    progressiveStake: base,
+    preLossStake: base,
+    consecLosses: 0,
+    cumulativeLoss: 0,
+    bankroll: bankroll,
+    startingBankroll: bankroll,
+    peakBankroll: bankroll,
+    wins:0, losses:0, count:0, failed:false, log:[]
+  };
+}
+function newSeriesObj(name, settings){
+  settings = settings || defaultSettings();
+  const base = settings.bankroll * settings.basePct/100;
+  return {
+    id: 's'+Date.now()+Math.random().toString(36).slice(2,7),
+    name,
+    settings,
+    sim: freshSim(base, settings.bankroll)
+  };
+}
+function loadAppState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed && Array.isArray(parsed.seriesList) && parsed.seriesList.length){
+        appState = parsed;
+        if(!appState.seriesList.find(s=>s.id===appState.activeSeriesId)){
+          appState.activeSeriesId = appState.seriesList[0].id;
+        }
+        return;
+      }
+    }
+  }catch(e){}
+  const s = newSeriesObj('Series 1');
+  appState = { seriesList:[s], activeSeriesId: s.id };
+}
+function saveAppState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); }catch(e){}
+}
+function activeSeries(){
+  return appState.seriesList.find(s=>s.id===appState.activeSeriesId) || appState.seriesList[0];
+}
+
+/* ---------- simulator ---------- */
 
 function currentBetOdds(){
-  return parseFloat($('in-bet-odds').value) || sim.p.odds;
+  return parseFloat($('in-bet-odds').value) || getParams().odds;
 }
-
 function currentStake(){
+  const p = getParams();
   const odds = currentBetOdds();
   if(sim.consecLosses > 0){
-    return recoveryStake(sim.cumulativeLoss, odds, sim.p.profitUnits, sim.p.base);
+    return recoveryStake(sim.cumulativeLoss, odds, p.profitUnits, p.base);
   }
   return sim.progressiveStake;
 }
-
-let sim = null;
 function resetSim(){
-  const p = getParams();
-  sim = {
-    p,
-    progressiveStake: p.base,
-    preLossStake: p.base,
-    consecLosses: 0,
-    cumulativeLoss: 0,
-    bankroll: p.bankroll,
-    startingBankroll: p.bankroll,
-    peakBankroll: p.bankroll,
-    wins: 0,
-    losses: 0,
-    count: 0,
-    failed: false,
-    log: [],
-  };
+  const s = activeSeries();
+  s.settings = readDOMSettings();
+  const p = deriveParams(s.settings);
+  s.sim = freshSim(p.base, p.bankroll);
+  sim = s.sim;
   $('in-bet-odds').value = p.odds;
+  saveAppState();
   renderSim();
 }
-
 function renderSim(){
+  const p = getParams();
   $('sim-stake').textContent = fmt(currentStake());
   $('sim-bankroll').textContent = fmt(sim.bankroll);
   $('sim-count').textContent = sim.count;
   const dots = [];
-  for(let i=0;i<sim.p.maxLoss;i++){
+  for(let i=0;i<p.maxLoss;i++){
     dots.push(`<div class="dot ${i < sim.consecLosses ? 'lost' : ''}"></div>`);
   }
   $('sim-dots').innerHTML = dots.join('');
@@ -380,11 +463,12 @@ function renderSim(){
   $('pl-record').textContent = `${sim.wins}W – ${sim.losses}L`;
   const totalBets = sim.wins + sim.losses;
   $('pl-winrate').textContent = totalBets > 0 ? `${(sim.wins/totalBets*100).toFixed(1)}%` : '—';
-}
 
+  $('active-series-label').textContent = activeSeries().name;
+}
 function placeBet(won){
   if(sim.failed) return;
-  const p = sim.p;
+  const p = getParams();
   const odds = currentBetOdds();
   const stake = currentStake();
   sim.count += 1;
@@ -415,12 +499,95 @@ function placeBet(won){
   sim.peakBankroll = Math.max(sim.peakBankroll, sim.bankroll);
   sim.log.push({n:sim.count, stake, won, bankrollAfter: sim.bankroll});
   $('in-bet-odds').value = p.odds;
+  saveAppState();
   renderSim();
+  renderSeriesTabs();
 }
+
+/* ---------- series tabs UI ---------- */
+
+function renderSeriesTabs(){
+  const container = $('series-tabs');
+  container.innerHTML = appState.seriesList.map(s=>{
+    const active = s.id === appState.activeSeriesId;
+    const badge = s.sim.failed ? ' ⚠' : '';
+    return `<div class="chip ${active?'active':''}" data-id="${s.id}">
+      <span class="chip-name" data-id="${s.id}">${escapeHtml(s.name)}${badge}</span>
+      <span class="del" data-del="${s.id}">×</span>
+    </div>`;
+  }).join('');
+
+  container.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click', (e)=>{
+      if(e.target.closest('[data-del]')) return;
+      switchSeries(chip.dataset.id);
+    });
+  });
+  container.querySelectorAll('[data-del]').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      deleteSeries(el.dataset.del);
+    });
+  });
+  container.querySelectorAll('.chip-name').forEach(nameEl=>{
+    nameEl.addEventListener('dblclick', (e)=>{
+      e.stopPropagation();
+      const id = nameEl.dataset.id;
+      const s = appState.seriesList.find(x=>x.id===id);
+      const newName = window.prompt('Rename series', s.name);
+      if(newName){ s.name = newName; saveAppState(); renderSeriesTabs(); renderSim(); }
+    });
+  });
+}
+function loadActiveSeriesIntoUI(){
+  const s = activeSeries();
+  populateForm(s.settings);
+  sim = s.sim;
+  $('in-bet-odds').value = s.settings.odds;
+  renderRequirement();
+  renderSim();
+  renderSeriesTabs();
+}
+function switchSeries(id){
+  appState.activeSeriesId = id;
+  saveAppState();
+  loadActiveSeriesIntoUI();
+}
+function newSeries(){
+  const name = window.prompt('Name this series (e.g. "EPL weekend", "Day 1")', 'Series ' + (appState.seriesList.length+1));
+  if(!name) return;
+  const baseSettings = Object.assign({}, activeSeries().settings);
+  const s = newSeriesObj(name, baseSettings);
+  appState.seriesList.push(s);
+  appState.activeSeriesId = s.id;
+  saveAppState();
+  loadActiveSeriesIntoUI();
+}
+function deleteSeries(id){
+  if(appState.seriesList.length <= 1){
+    alert('You need at least one series — rename or reset this one instead of deleting it.');
+    return;
+  }
+  const s = appState.seriesList.find(x=>x.id===id);
+  if(!window.confirm(`Delete "${s.name}"? This can't be undone.`)) return;
+  appState.seriesList = appState.seriesList.filter(x=>x.id!==id);
+  if(appState.activeSeriesId === id){
+    appState.activeSeriesId = appState.seriesList[0].id;
+  }
+  saveAppState();
+  loadActiveSeriesIntoUI();
+}
+
+/* ---------- wiring ---------- */
 
 inputs.forEach(id => $(id).addEventListener('input', ()=>{
   renderRequirement();
-  if(sim && sim.count === 0) resetSim();
+  if(sim && sim.count === 0){
+    resetSim();
+  } else {
+    activeSeries().settings = readDOMSettings();
+    saveAppState();
+  }
 }));
 $('in-bet-odds').addEventListener('input', ()=>{
   if(sim) renderSim();
@@ -428,9 +595,10 @@ $('in-bet-odds').addEventListener('input', ()=>{
 $('btn-win').addEventListener('click', ()=>placeBet(true));
 $('btn-loss').addEventListener('click', ()=>placeBet(false));
 $('btn-reset').addEventListener('click', resetSim);
+$('btn-new-series').addEventListener('click', newSeries);
 
-renderRequirement();
-resetSim();
+loadAppState();
+loadActiveSeriesIntoUI();
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
