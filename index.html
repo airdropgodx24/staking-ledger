@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Staking Ledger</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#12151A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Staking Ledger">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#12151A;
+    --panel:#1B1F26;
+    --panel-2:#20252D;
+    --border:#2A2F38;
+    --text:#ECEAE4;
+    --muted:#8B93A1;
+    --win:#3FA796;
+    --loss:#E4572E;
+    --amber:#D9A441;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;
+    line-height:1.5;
+    padding:24px 16px 64px;
+  }
+  .wrap{max-width:640px;margin:0 auto;}
+  h1{
+    font-size:1.5rem;
+    font-weight:650;
+    margin:0 0 4px;
+    letter-spacing:-0.01em;
+  }
+  .sub{color:var(--muted);font-size:0.9rem;margin:0 0 28px;max-width:52ch;}
+  .num{font-family:"IBM Plex Mono","SF Mono",ui-monospace,monospace;}
+  section{margin-bottom:22px;}
+  h2{
+    font-size:0.78rem;
+    color:var(--muted);
+    font-weight:600;
+    margin:0 0 12px;
+    letter-spacing:0.01em;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:18px;
+  }
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  label{display:block;font-size:0.8rem;color:var(--muted);margin-bottom:5px;}
+  input{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:9px 10px;
+    border-radius:6px;
+    font-size:0.95rem;
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  input:focus{outline:1px solid var(--win);border-color:var(--win);}
+  select{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:9px 10px;
+    border-radius:6px;
+    font-size:0.9rem;
+    font-family:inherit;
+  }
+  select:focus{outline:1px solid var(--win);border-color:var(--win);}
+  .field{margin-bottom:10px;}
+  table{width:100%;border-collapse:collapse;font-size:0.88rem;margin-top:10px;}
+  th,td{text-align:right;padding:7px 6px;border-bottom:1px solid var(--border);}
+  th:first-child,td:first-child{text-align:left;}
+  th{color:var(--muted);font-weight:600;font-size:0.75rem;}
+  .req-banner{
+    margin-top:14px;padding:12px 14px;border-radius:8px;
+    font-size:0.9rem;display:flex;justify-content:space-between;align-items:center;gap:10px;
+  }
+  .req-ok{background:rgba(63,167,150,0.12);border:1px solid rgba(63,167,150,0.4);color:var(--win);}
+  .req-bad{background:rgba(228,87,46,0.12);border:1px solid rgba(228,87,46,0.4);color:var(--loss);}
+  .req-bad b, .req-ok b{color:inherit;}
+  .sim-top{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px;}
+  .stake-figure{font-size:2.1rem;font-weight:650;}
+  .stake-label{color:var(--muted);font-size:0.78rem;margin-bottom:2px;}
+  .dots{display:flex;gap:6px;}
+  .dot{width:12px;height:12px;border-radius:50%;background:var(--border);}
+  .dot.lost{background:var(--loss);}
+  .btn-row{display:flex;gap:10px;margin-bottom:16px;}
+  button{
+    flex:1;
+    padding:13px;
+    border-radius:8px;
+    border:none;
+    font-size:0.95rem;
+    font-weight:600;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .btn-win{background:var(--win);color:#0B1614;}
+  .btn-loss{background:var(--loss);color:#1A0E08;}
+  .btn-reset{
+    background:transparent;border:1px solid var(--border);color:var(--muted);
+    flex:none;padding:13px 16px;
+  }
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:0.4;cursor:not-allowed;}
+  .stat-row{display:flex;justify-content:space-between;font-size:0.85rem;color:var(--muted);margin-bottom:14px;}
+  .stat-row .num{color:var(--text);}
+  .fail-banner{
+    background:rgba(228,87,46,0.15);border:1px solid var(--loss);color:var(--loss);
+    padding:12px 14px;border-radius:8px;margin-bottom:14px;font-size:0.88rem;
+  }
+  .log{max-height:220px;overflow-y:auto;}
+  .log table{margin-top:0;}
+  .result-win{color:var(--win);}
+  .result-loss{color:var(--loss);}
+  .footnote{color:var(--muted);font-size:0.78rem;margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Staking Ledger</h1>
+  <p class="sub">Progressive-martingale plan at fixed odds: stakes grow 15% on each win, and rebuild after a loss to recover it. Three straight losses stops the plan.</p>
+
+  <section>
+    <h2>Plan settings</h2>
+    <div class="panel">
+      <div class="grid">
+        <div class="field">
+          <label>Odds (decimal)</label>
+          <input type="number" id="in-odds" value="1.5" step="0.01" min="1.01">
+        </div>
+        <div class="field">
+          <label>Base stake (% of bankroll)</label>
+          <input type="number" id="in-base-pct" value="15" step="0.5" min="0.1">
+        </div>
+        <div class="field">
+          <label>Base stake amount (computed)</label>
+          <input type="text" id="out-base-amount" value="" readonly style="opacity:0.7">
+        </div>
+        <div class="field">
+          <label>Growth per win (%)</label>
+          <input type="number" id="in-growth" value="15" step="1" min="0">
+        </div>
+        <div class="field">
+          <label>Recovery + profit target (× base stake), used in column 2 below</label>
+          <input type="number" id="in-profit" value="1" step="0.1" min="0">
+        </div>
+        <div class="field">
+          <label>Max consecutive losses</label>
+          <input type="number" id="in-maxloss" value="3" step="1" min="1" max="6">
+        </div>
+        <div class="field">
+          <label>Bankroll</label>
+          <input type="number" id="in-bankroll" value="1300" step="10" min="0">
+        </div>
+      </div>
+      <div class="field" style="margin-top:2px">
+        <label>After a successful recovery, next stake starts from</label>
+        <select id="in-continue">
+          <option value="base">Base stake (conservative reset)</option>
+          <option value="smooth" selected>Pre-loss stake, then +growth% (smooth continuation)</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Bankroll requirement (worst case) — two scenarios</h2>
+    <div class="panel">
+      <table id="req-table"><thead>
+        <tr><th>Loss #</th><th>Recovery only</th><th>Recovery + profit</th></tr>
+      </thead><tbody></tbody></table>
+      <div class="req-banner" id="req-banner"></div>
+      <div class="req-banner" id="req-banner-2" style="margin-top:8px"></div>
+      <p class="footnote" id="safe-pct-note" style="margin-top:10px;font-size:0.82rem"></p>
+      <p class="footnote">Both columns assume every bet in the sequence loses, at the odds set above. Column 1 just breaks even on recovery. Column 2 also banks the profit target you set. Odds, bankroll, and every other field above recalculate both columns live.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Live simulator</h2>
+    <div class="panel">
+      <div class="sim-top">
+        <div>
+          <div class="stake-label">Next stake</div>
+          <div class="stake-figure num" id="sim-stake">100</div>
+        </div>
+        <div class="dots" id="sim-dots"></div>
+      </div>
+      <div class="field">
+        <label>Odds for this bet</label>
+        <input type="number" id="in-bet-odds" value="1.5" step="0.01" min="1.01">
+      </div>
+      <div class="stat-row">
+        <span>Bankroll: <span class="num" id="sim-bankroll">1300</span></span>
+        <span>Bets placed: <span class="num" id="sim-count">0</span></span>
+      </div>
+      <div id="pl-panel" class="panel" style="background:var(--panel-2);margin-bottom:14px;padding:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+          <span class="stake-label">Net P&L</span>
+          <span class="num" id="pl-net" style="font-size:1.3rem;font-weight:650">0 (0.0%)</span>
+        </div>
+        <div class="stat-row" style="margin-bottom:0">
+          <span>Peak bankroll: <span class="num" id="pl-peak">0</span></span>
+          <span>Drawdown from peak: <span class="num" id="pl-drawdown">0.0%</span></span>
+        </div>
+        <div class="stat-row" style="margin-bottom:0">
+          <span>Record: <span class="num" id="pl-record">0W – 0L</span></span>
+          <span>Win rate: <span class="num" id="pl-winrate">—</span></span>
+        </div>
+      </div>
+      <div id="sim-fail" style="display:none" class="fail-banner">
+        Plan stopped — three losses in a row. Reset before placing another bet.
+      </div>
+      <div class="btn-row">
+        <button class="btn-win" id="btn-win">Win</button>
+        <button class="btn-loss" id="btn-loss">Loss</button>
+        <button class="btn-reset" id="btn-reset">Reset</button>
+      </div>
+      <div class="log">
+        <table><thead><tr><th>#</th><th>Stake</th><th>Result</th><th>Bankroll after</th></tr></thead>
+        <tbody id="log-body"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const inputs = ['in-odds','in-base-pct','in-growth','in-profit','in-maxloss','in-bankroll','in-continue'];
+
+function getParams(){
+  const bankroll = parseFloat($('in-bankroll').value) || 0;
+  const basePct = parseFloat($('in-base-pct').value) || 0;
+  const base = bankroll * basePct / 100;
+  return {
+    odds: parseFloat($('in-odds').value) || 1.5,
+    base,
+    basePct,
+    growth: parseFloat($('in-growth').value) || 0,
+    profitUnits: parseFloat($('in-profit').value) || 0,
+    maxLoss: parseInt($('in-maxloss').value) || 3,
+    bankroll,
+    continueMode: $('in-continue').value,
+  };
+}
+
+function fmt(n){
+  return n.toLocaleString(undefined,{maximumFractionDigits:2});
+}
+
+function recoveryStake(cumulativeLoss, odds, profitUnits, base){
+  const target = profitUnits * base;
+  return (cumulativeLoss + target) / (odds - 1);
+}
+
+function runScenario(p, profitUnits){
+  let cumulativeLoss = 0;
+  let stake = p.base;
+  const rows = [];
+  for(let i=1;i<=p.maxLoss;i++){
+    if(i>1) stake = recoveryStake(cumulativeLoss, p.odds, profitUnits, p.base);
+    cumulativeLoss += stake;
+    rows.push({n:i, stake, cumulativeLoss});
+  }
+  return rows;
+}
+
+function renderRequirement(){
+  const p = getParams();
+  $('out-base-amount').value = fmt(p.base);
+  const colA = runScenario(p, 0);
+  const colB = runScenario(p, p.profitUnits);
+  const tbody = document.querySelector('#req-table tbody');
+  tbody.innerHTML = colA.map((r,i)=>
+    `<tr><td>${r.n}</td><td class="num">${fmt(r.stake)}</td><td class="num">${fmt(colB[i].stake)}</td></tr>`
+  ).join('') +
+  `<tr><td><b>Total lost</b></td><td class="num"><b>${fmt(colA[colA.length-1].cumulativeLoss)}</b></td><td class="num"><b>${fmt(colB[colB.length-1].cumulativeLoss)}</b></td></tr>`;
+
+  const reqA = colA[colA.length-1].cumulativeLoss;
+  const reqB = colB[colB.length-1].cumulativeLoss;
+  const bannerA = $('req-banner');
+  const bannerB = $('req-banner-2');
+  bannerA.className = 'req-banner ' + (p.bankroll >= reqA ? 'req-ok' : 'req-bad');
+  bannerA.innerHTML = `<span>Recovery only</span><b class="num">${fmt(p.bankroll)} ${p.bankroll>=reqA?'≥':'<'} ${fmt(reqA)}</b>`;
+  bannerB.className = 'req-banner ' + (p.bankroll >= reqB ? 'req-ok' : 'req-bad');
+  bannerB.innerHTML = `<span>Recovery + profit</span><b class="num">${fmt(p.bankroll)} ${p.bankroll>=reqB?'≥':'<'} ${fmt(reqB)}</b>`;
+
+  const multipleA = reqA / p.base;
+  const multipleB = reqB / p.base;
+  const safePctA = 100 / multipleA;
+  const safePctB = 100 / multipleB;
+  const note = $('safe-pct-note');
+  const currentOk = p.basePct <= safePctB;
+  note.style.color = currentOk ? 'var(--win)' : 'var(--loss)';
+  note.innerHTML = `At ${p.basePct}% base stake: max safe % for recovery-only is <b class="num">${safePctA.toFixed(1)}%</b>, for recovery + profit is <b class="num">${safePctB.toFixed(1)}%</b>. `
+    + (currentOk
+      ? 'Your current % covers three straight losses in both scenarios.'
+      : 'Your current % is above the safe ceiling for at least one scenario — three straight losses would exceed your bankroll.');
+  return {reqA, reqB};
+}
+
+function currentBetOdds(){
+  return parseFloat($('in-bet-odds').value) || sim.p.odds;
+}
+
+function currentStake(){
+  const odds = currentBetOdds();
+  if(sim.consecLosses > 0){
+    return recoveryStake(sim.cumulativeLoss, odds, sim.p.profitUnits, sim.p.base);
+  }
+  return sim.progressiveStake;
+}
+
+let sim = null;
+function resetSim(){
+  const p = getParams();
+  sim = {
+    p,
+    progressiveStake: p.base,
+    preLossStake: p.base,
+    consecLosses: 0,
+    cumulativeLoss: 0,
+    bankroll: p.bankroll,
+    startingBankroll: p.bankroll,
+    peakBankroll: p.bankroll,
+    wins: 0,
+    losses: 0,
+    count: 0,
+    failed: false,
+    log: [],
+  };
+  $('in-bet-odds').value = p.odds;
+  renderSim();
+}
+
+function renderSim(){
+  $('sim-stake').textContent = fmt(currentStake());
+  $('sim-bankroll').textContent = fmt(sim.bankroll);
+  $('sim-count').textContent = sim.count;
+  const dots = [];
+  for(let i=0;i<sim.p.maxLoss;i++){
+    dots.push(`<div class="dot ${i < sim.consecLosses ? 'lost' : ''}"></div>`);
+  }
+  $('sim-dots').innerHTML = dots.join('');
+  $('sim-fail').style.display = sim.failed ? 'block' : 'none';
+  $('btn-win').disabled = sim.failed;
+  $('btn-loss').disabled = sim.failed;
+  $('log-body').innerHTML = sim.log.slice().reverse().map(l=>
+    `<tr><td>${l.n}</td><td class="num">${fmt(l.stake)}</td><td class="${l.won?'result-win':'result-loss'}">${l.won?'Win':'Loss'}</td><td class="num">${fmt(l.bankrollAfter)}</td></tr>`
+  ).join('');
+
+  const netPL = sim.bankroll - sim.startingBankroll;
+  const netPLPct = sim.startingBankroll > 0 ? (netPL / sim.startingBankroll * 100) : 0;
+  const plEl = $('pl-net');
+  plEl.textContent = `${netPL >= 0 ? '+' : ''}${fmt(netPL)} (${netPL >= 0 ? '+' : ''}${netPLPct.toFixed(1)}%)`;
+  plEl.style.color = netPL > 0 ? 'var(--win)' : (netPL < 0 ? 'var(--loss)' : 'var(--text)');
+
+  $('pl-peak').textContent = fmt(sim.peakBankroll);
+  const drawdown = sim.peakBankroll > 0 ? ((sim.peakBankroll - sim.bankroll) / sim.peakBankroll * 100) : 0;
+  const ddEl = $('pl-drawdown');
+  ddEl.textContent = `${drawdown.toFixed(1)}%`;
+  ddEl.style.color = drawdown > 0 ? 'var(--loss)' : 'var(--text)';
+
+  $('pl-record').textContent = `${sim.wins}W – ${sim.losses}L`;
+  const totalBets = sim.wins + sim.losses;
+  $('pl-winrate').textContent = totalBets > 0 ? `${(sim.wins/totalBets*100).toFixed(1)}%` : '—';
+}
+
+function placeBet(won){
+  if(sim.failed) return;
+  const p = sim.p;
+  const odds = currentBetOdds();
+  const stake = currentStake();
+  sim.count += 1;
+  if(won){
+    sim.bankroll += stake * (odds - 1);
+    sim.wins += 1;
+    if(sim.consecLosses > 0){
+      sim.consecLosses = 0;
+      sim.cumulativeLoss = 0;
+      sim.progressiveStake = (p.continueMode === 'smooth')
+        ? sim.preLossStake * (1 + p.growth/100)
+        : p.base;
+    } else {
+      sim.progressiveStake = stake * (1 + p.growth/100);
+    }
+  } else {
+    if(sim.consecLosses === 0){
+      sim.preLossStake = stake;
+    }
+    sim.bankroll -= stake;
+    sim.losses += 1;
+    sim.consecLosses += 1;
+    sim.cumulativeLoss += stake;
+    if(sim.consecLosses >= p.maxLoss){
+      sim.failed = true;
+    }
+  }
+  sim.peakBankroll = Math.max(sim.peakBankroll, sim.bankroll);
+  sim.log.push({n:sim.count, stake, won, bankrollAfter: sim.bankroll});
+  $('in-bet-odds').value = p.odds;
+  renderSim();
+}
+
+inputs.forEach(id => $(id).addEventListener('input', ()=>{
+  renderRequirement();
+  if(sim && sim.count === 0) resetSim();
+}));
+$('in-bet-odds').addEventListener('input', ()=>{
+  if(sim) renderSim();
+});
+$('btn-win').addEventListener('click', ()=>placeBet(true));
+$('btn-loss').addEventListener('click', ()=>placeBet(false));
+$('btn-reset').addEventListener('click', resetSim);
+
+renderRequirement();
+resetSim();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
