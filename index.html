@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Staking Ledger</title>
+<title>StakeGuard</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#12151A">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Staking Ledger">
+<meta name="apple-mobile-web-app-title" content="StakeGuard">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root{
@@ -33,61 +33,25 @@
     padding:24px 16px 64px;
   }
   .wrap{max-width:640px;margin:0 auto;}
-  h1{
-    font-size:1.5rem;
-    font-weight:650;
-    margin:0 0 4px;
-    letter-spacing:-0.01em;
-  }
+  h1{font-size:1.5rem;font-weight:650;margin:0 0 4px;letter-spacing:-0.01em;}
+  .brand-tagline{color:var(--win);font-size:0.8rem;font-weight:600;letter-spacing:0.03em;text-transform:uppercase;margin:0 0 6px;}
   .sub{color:var(--muted);font-size:0.9rem;margin:0 0 28px;max-width:52ch;}
   .num{font-family:"IBM Plex Mono","SF Mono",ui-monospace,monospace;}
   section{margin-bottom:22px;}
-  h2{
-    font-size:0.78rem;
-    color:var(--muted);
-    font-weight:600;
-    margin:0 0 12px;
-    letter-spacing:0.01em;
-  }
-  .panel{
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:10px;
-    padding:18px;
-  }
+  h2{font-size:0.78rem;color:var(--muted);font-weight:600;margin:0 0 12px;letter-spacing:0.01em;}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   label{display:block;font-size:0.8rem;color:var(--muted);margin-bottom:5px;}
-  input{
-    width:100%;
-    background:var(--panel-2);
-    border:1px solid var(--border);
-    color:var(--text);
-    padding:9px 10px;
-    border-radius:6px;
-    font-size:0.95rem;
-    font-family:"IBM Plex Mono",ui-monospace,monospace;
-  }
+  input{width:100%;background:var(--panel-2);border:1px solid var(--border);color:var(--text);padding:9px 10px;border-radius:6px;font-size:0.95rem;font-family:"IBM Plex Mono",ui-monospace,monospace;}
   input:focus{outline:1px solid var(--win);border-color:var(--win);}
-  select{
-    width:100%;
-    background:var(--panel-2);
-    border:1px solid var(--border);
-    color:var(--text);
-    padding:9px 10px;
-    border-radius:6px;
-    font-size:0.9rem;
-    font-family:inherit;
-  }
+  select{width:100%;background:var(--panel-2);border:1px solid var(--border);color:var(--text);padding:9px 10px;border-radius:6px;font-size:0.9rem;font-family:inherit;}
   select:focus{outline:1px solid var(--win);border-color:var(--win);}
   .field{margin-bottom:10px;}
   table{width:100%;border-collapse:collapse;font-size:0.88rem;margin-top:10px;}
   th,td{text-align:right;padding:7px 6px;border-bottom:1px solid var(--border);}
   th:first-child,td:first-child{text-align:left;}
   th{color:var(--muted);font-weight:600;font-size:0.75rem;}
-  .req-banner{
-    margin-top:14px;padding:12px 14px;border-radius:8px;
-    font-size:0.9rem;display:flex;justify-content:space-between;align-items:center;gap:10px;
-  }
+  .req-banner{margin-top:14px;padding:12px 14px;border-radius:8px;font-size:0.9rem;display:flex;justify-content:space-between;align-items:center;gap:10px;}
   .req-ok{background:rgba(63,167,150,0.12);border:1px solid rgba(63,167,150,0.4);color:var(--win);}
   .req-bad{background:rgba(228,87,46,0.12);border:1px solid rgba(228,87,46,0.4);color:var(--loss);}
   .req-bad b, .req-ok b{color:inherit;}
@@ -98,62 +62,96 @@
   .dot{width:12px;height:12px;border-radius:50%;background:var(--border);}
   .dot.lost{background:var(--loss);}
   .btn-row{display:flex;gap:10px;margin-bottom:16px;}
-  button{
-    flex:1;
-    padding:13px;
-    border-radius:8px;
-    border:none;
-    font-size:0.95rem;
-    font-weight:600;
-    cursor:pointer;
-    font-family:inherit;
-  }
+  button{flex:1;padding:13px;border-radius:8px;border:none;font-size:0.95rem;font-weight:600;cursor:pointer;font-family:inherit;}
   .btn-win{background:var(--win);color:#0B1614;}
   .btn-loss{background:var(--loss);color:#1A0E08;}
-  .btn-reset{
-    background:transparent;border:1px solid var(--border);color:var(--muted);
-    flex:none;padding:13px 16px;
-  }
+  .btn-reset{background:transparent;border:1px solid var(--border);color:var(--muted);flex:none;padding:13px 16px;}
   button:active{transform:translateY(1px);}
   button:disabled{opacity:0.4;cursor:not-allowed;}
   .stat-row{display:flex;justify-content:space-between;font-size:0.85rem;color:var(--muted);margin-bottom:14px;}
   .stat-row .num{color:var(--text);}
-  .fail-banner{
-    background:rgba(228,87,46,0.15);border:1px solid var(--loss);color:var(--loss);
-    padding:12px 14px;border-radius:8px;margin-bottom:14px;font-size:0.88rem;
-  }
+  .fail-banner{background:rgba(228,87,46,0.15);border:1px solid var(--loss);color:var(--loss);padding:12px 14px;border-radius:8px;margin-bottom:14px;font-size:0.88rem;}
   .log{max-height:220px;overflow-y:auto;}
   .log table{margin-top:0;}
   .result-win{color:var(--win);}
   .result-loss{color:var(--loss);}
   .footnote{color:var(--muted);font-size:0.78rem;margin-top:6px;}
   .chip-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;}
-  .chip{
-    flex:none;display:flex;align-items:center;gap:7px;
-    padding:9px 13px;border-radius:20px;
-    background:var(--panel-2);border:1px solid var(--border);
-    color:var(--muted);font-size:0.85rem;white-space:nowrap;cursor:pointer;
-  }
+  .chip{flex:none;display:flex;align-items:center;gap:7px;padding:9px 13px;border-radius:20px;background:var(--panel-2);border:1px solid var(--border);color:var(--muted);font-size:0.85rem;white-space:nowrap;cursor:pointer;}
   .chip.active{border-color:var(--win);color:var(--text);background:rgba(63,167,150,0.14);}
   .chip .del{color:var(--loss);font-weight:700;padding:0 2px;}
-  .btn-new-series{
-    width:100%;margin-top:8px;background:transparent;border:1px dashed var(--border);
-    color:var(--muted);padding:11px;
-  }
+  .btn-new-series{width:100%;margin-top:8px;background:transparent;border:1px dashed var(--border);color:var(--muted);padding:11px;}
+  .app-footer{text-align:center;color:var(--muted);font-size:0.76rem;margin-top:30px;line-height:1.7;}
+  .app-footer a{color:var(--win);text-decoration:none;}
+
+  /* overlays */
+  .overlay{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;justify-content:center;padding:28px;}
+  .overlay-inner{max-width:440px;margin:0 auto;width:100%;}
+  .overlay h2.ov-title{font-size:1.3rem;color:var(--text);font-weight:700;margin-bottom:10px;letter-spacing:0;}
+  .overlay p{color:var(--muted);font-size:0.92rem;margin-bottom:16px;}
+  .check-row{display:flex;align-items:flex-start;gap:10px;margin:18px 0;font-size:0.85rem;color:var(--text);}
+  .check-row input{width:auto;margin-top:2px;}
+  .ob-dots{display:flex;gap:6px;justify-content:center;margin:20px 0;}
+  .ob-dot{width:7px;height:7px;border-radius:50%;background:var(--border);}
+  .ob-dot.on{background:var(--win);}
+  .paywall-box{background:var(--panel);border:1px solid var(--win);border-radius:10px;padding:18px;margin-top:10px;}
 </style>
 </head>
 <body>
+
+<!-- Age gate / responsible gambling overlay -->
+<div class="overlay" id="ov-gate">
+  <div class="overlay-inner">
+    <h2 class="ov-title">Before you start</h2>
+    <p>StakeGuard is a bankroll and staking-plan calculator. It does not place bets, guarantee outcomes, or offer betting advice — it only tracks the math of a staking plan you define.</p>
+    <p>Betting carries real financial risk. Never stake money you can't afford to lose, and stop if betting stops being fun.</p>
+    <div class="check-row">
+      <input type="checkbox" id="gate-check">
+      <label for="gate-check" style="margin:0">I am 18 or older, and I understand this app does not guarantee profits or protect against loss.</label>
+    </div>
+    <button class="btn-win" id="gate-continue" disabled style="width:100%">Continue</button>
+  </div>
+</div>
+
+<!-- Onboarding overlay -->
+<div class="overlay" id="ov-onboard" style="display:none">
+  <div class="overlay-inner">
+    <div id="ob-slide-content"></div>
+    <div class="ob-dots" id="ob-dots"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-reset" id="ob-skip">Skip</button>
+      <button class="btn-win" id="ob-next">Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pro paywall overlay -->
+<div class="overlay" id="ov-paywall" style="display:none">
+  <div class="overlay-inner">
+    <h2 class="ov-title">Multiple series is a Pro feature</h2>
+    <p>The free version tracks one series at a time. StakeGuard Pro unlocks unlimited parallel series, so you can run separate plans per league, per day, or per bankroll.</p>
+    <div class="paywall-box">
+      <label>Have an unlock code?</label>
+      <input type="text" id="pro-code-input" placeholder="Enter code" style="margin-bottom:10px">
+      <button class="btn-win" id="pro-code-submit" style="width:100%">Unlock Pro</button>
+    </div>
+    <p class="footnote" style="margin-top:14px">No code yet? Close this and keep using your single free series — everything else in the app stays fully available.</p>
+    <button class="btn-reset" id="paywall-close" style="width:100%;margin-top:6px">Close</button>
+  </div>
+</div>
+
 <div class="wrap">
 
-  <h1>Staking Ledger</h1>
-  <p class="sub">Progressive-martingale plan at fixed odds: stakes grow 15% on each win, and rebuild after a loss to recover it. Three straight losses stops the plan.</p>
+  <p class="brand-tagline">StakeGuard</p>
+  <h1>Know your worst case before you stake it.</h1>
+  <p class="sub">Progressive-martingale plan at fixed odds: stakes grow on each win, and rebuild after a loss to recover it. Your loss limit stops the plan before it stops you.</p>
 
   <section>
     <h2>Series — switch between running sequences</h2>
     <div class="panel" style="padding:12px 12px 6px">
       <div class="chip-row" id="series-tabs"></div>
       <button class="btn-new-series" id="btn-new-series">+ New series</button>
-      <p class="footnote" style="margin-top:8px">Double-tap a series name to rename it. Each series keeps its own settings, stake progress, and P&L — everything saves automatically on this device.</p>
+      <p class="footnote" style="margin-top:8px">Double-tap a series name to rename it. Everything saves automatically on this device. Free plan: 1 series.</p>
     </div>
   </section>
 
@@ -189,6 +187,10 @@
           <label>Bankroll</label>
           <input type="number" id="in-bankroll" value="1300" step="10" min="0">
         </div>
+        <div class="field">
+          <label>Lock in gains after this many wins in a row (0 = off)</label>
+          <input type="number" id="in-lockin" value="0" step="1" min="0">
+        </div>
       </div>
       <div class="field" style="margin-top:2px">
         <label>After a successful recovery, next stake starts from</label>
@@ -209,7 +211,7 @@
       <div class="req-banner" id="req-banner"></div>
       <div class="req-banner" id="req-banner-2" style="margin-top:8px"></div>
       <p class="footnote" id="safe-pct-note" style="margin-top:10px;font-size:0.82rem"></p>
-      <p class="footnote">Both columns assume every bet in the sequence loses, at the odds set above. Column 1 just breaks even on recovery. Column 2 also banks the profit target you set. Odds, bankroll, and every other field above recalculate both columns live.</p>
+      <p class="footnote">Both columns assume every bet in the sequence loses, at the odds set above. Column 1 just breaks even on recovery. Column 2 also banks the profit target you set.</p>
     </div>
   </section>
 
@@ -244,6 +246,7 @@
           <span>Record: <span class="num" id="pl-record">0W – 0L</span></span>
           <span>Win rate: <span class="num" id="pl-winrate">—</span></span>
         </div>
+        <p class="footnote" id="pl-lockin" style="margin-top:8px;display:none"></p>
       </div>
       <div id="sim-fail" style="display:none" class="fail-banner">
         Plan stopped — three losses in a row. Reset before placing another bet.
@@ -260,24 +263,93 @@
     </div>
   </section>
 
+  <div class="app-footer">
+    StakeGuard tracks staking math only — it does not place bets or guarantee results.<br>
+    18+. Bet responsibly. <a href="#" id="footer-help-link">Need help with gambling?</a>
+  </div>
+
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-const inputs = ['in-odds','in-base-pct','in-growth','in-profit','in-maxloss','in-bankroll','in-continue'];
+const inputs = ['in-odds','in-base-pct','in-growth','in-profit','in-maxloss','in-bankroll','in-continue','in-lockin'];
 const STORAGE_KEY = 'stakingLedgerAppState_v1';
+const GATE_KEY = 'stakeguard_gate_v1';
+const OB_KEY = 'stakeguard_onboarded_v1';
+const PRO_KEY = 'stakeguard_pro_v1';
+const VALID_PRO_CODES = ['STAKEGUARD-PRO'];
 
-function fmt(n){
-  return n.toLocaleString(undefined,{maximumFractionDigits:2});
+function fmt(n){ return n.toLocaleString(undefined,{maximumFractionDigits:2}); }
+function escapeHtml(str){ return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------- gate / onboarding / paywall ---------- */
+
+function isPro(){ return localStorage.getItem(PRO_KEY) === 'yes'; }
+
+function initGate(){
+  if(localStorage.getItem(GATE_KEY) === 'yes'){
+    $('ov-gate').style.display = 'none';
+    initOnboarding();
+    return;
+  }
+  $('gate-check').addEventListener('change', (e)=>{
+    $('gate-continue').disabled = !e.target.checked;
+  });
+  $('gate-continue').addEventListener('click', ()=>{
+    localStorage.setItem(GATE_KEY, 'yes');
+    $('ov-gate').style.display = 'none';
+    initOnboarding();
+  });
 }
-function escapeHtml(str){
-  return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const OB_SLIDES = [
+  { title: 'Know your worst case', body: 'Before you stake a cent, StakeGuard shows the exact bankroll a 3-loss streak would cost you — for both a breakeven recovery and a recovery-plus-profit plan.' },
+  { title: 'Run parallel series', body: 'Track more than one plan at once — one per league, one per day, whatever split fits how you bet. Each keeps its own stake, streak, and P&L.' },
+  { title: 'Stop before it stops you', body: 'The app halts the plan automatically after your set number of straight losses, and tracks live P&L and drawdown so you always know where you stand.' },
+];
+let obIndex = 0;
+function renderOnboardSlide(){
+  const s = OB_SLIDES[obIndex];
+  $('ob-slide-content').innerHTML = `<h2 class="ov-title">${s.title}</h2><p>${s.body}</p>`;
+  $('ob-dots').innerHTML = OB_SLIDES.map((_,i)=>`<div class="ob-dot ${i===obIndex?'on':''}"></div>`).join('');
+  $('ob-next').textContent = obIndex === OB_SLIDES.length-1 ? 'Get started' : 'Next';
 }
+function finishOnboarding(){
+  localStorage.setItem(OB_KEY, 'yes');
+  $('ov-onboard').style.display = 'none';
+}
+function initOnboarding(){
+  if(localStorage.getItem(OB_KEY) === 'yes') return;
+  $('ov-onboard').style.display = 'flex';
+  renderOnboardSlide();
+  $('ob-next').addEventListener('click', ()=>{
+    if(obIndex === OB_SLIDES.length-1){ finishOnboarding(); return; }
+    obIndex++; renderOnboardSlide();
+  });
+  $('ob-skip').addEventListener('click', finishOnboarding);
+}
+function showPaywall(){ $('ov-paywall').style.display = 'flex'; }
+function hidePaywall(){ $('ov-paywall').style.display = 'none'; }
+$('paywall-close').addEventListener('click', hidePaywall);
+$('pro-code-submit').addEventListener('click', ()=>{
+  const code = $('pro-code-input').value.trim().toUpperCase();
+  if(VALID_PRO_CODES.includes(code)){
+    localStorage.setItem(PRO_KEY, 'yes');
+    hidePaywall();
+    alert('Pro unlocked — you can now add unlimited series.');
+  } else {
+    alert('That code was not recognized.');
+  }
+});
+$('footer-help-link').addEventListener('click', (e)=>{
+  e.preventDefault();
+  alert('If gambling is causing you harm, free confidential support is available in most countries via national gambling helplines (search "[your country] gambling helpline"). You are not alone in this — reaching out is a strong step.');
+});
 
 /* ---------- settings / params ---------- */
 
 function defaultSettings(){
-  return { odds:1.5, basePct:15, growth:15, profitUnits:1, maxLoss:3, bankroll:1300, continueMode:'smooth' };
+  return { odds:1.5, basePct:15, growth:15, profitUnits:1, maxLoss:3, bankroll:1300, continueMode:'smooth', lockInAfter:0 };
 }
 function readDOMSettings(){
   return {
@@ -288,15 +360,14 @@ function readDOMSettings(){
     maxLoss: parseInt($('in-maxloss').value) || 3,
     bankroll: parseFloat($('in-bankroll').value) || 0,
     continueMode: $('in-continue').value,
+    lockInAfter: parseInt($('in-lockin').value) || 0,
   };
 }
 function deriveParams(settings){
   const base = settings.bankroll * settings.basePct / 100;
   return Object.assign({}, settings, {base});
 }
-function getParams(){
-  return deriveParams(readDOMSettings());
-}
+function getParams(){ return deriveParams(readDOMSettings()); }
 function populateForm(settings){
   $('in-odds').value = settings.odds;
   $('in-base-pct').value = settings.basePct;
@@ -305,6 +376,7 @@ function populateForm(settings){
   $('in-maxloss').value = settings.maxLoss;
   $('in-bankroll').value = settings.bankroll;
   $('in-continue').value = settings.continueMode;
+  $('in-lockin').value = settings.lockInAfter != null ? settings.lockInAfter : 0;
 }
 
 /* ---------- recovery math ---------- */
@@ -352,37 +424,23 @@ function renderRequirement(){
   const currentOk = p.basePct <= safePctB;
   note.style.color = currentOk ? 'var(--win)' : 'var(--loss)';
   note.innerHTML = `At ${p.basePct}% base stake: max safe % for recovery-only is <b class="num">${safePctA.toFixed(1)}%</b>, for recovery + profit is <b class="num">${safePctB.toFixed(1)}%</b>. `
-    + (currentOk
-      ? 'Your current % covers three straight losses in both scenarios.'
-      : 'Your current % is above the safe ceiling for at least one scenario — three straight losses would exceed your bankroll.');
+    + (currentOk ? 'Your current % covers three straight losses in both scenarios.' : 'Your current % is above the safe ceiling for at least one scenario.');
 }
 
-/* ---------- app state: multiple persisted series ---------- */
+/* ---------- app state ---------- */
 
 let appState = null;
 let sim = null;
 
 function freshSim(base, bankroll){
-  return {
-    progressiveStake: base,
-    preLossStake: base,
-    consecLosses: 0,
-    cumulativeLoss: 0,
-    bankroll: bankroll,
-    startingBankroll: bankroll,
-    peakBankroll: bankroll,
-    wins:0, losses:0, count:0, failed:false, log:[]
-  };
+  return { progressiveStake: base, preLossStake: base, consecLosses: 0, cumulativeLoss: 0,
+    bankroll: bankroll, startingBankroll: bankroll, peakBankroll: bankroll,
+    wins:0, losses:0, count:0, failed:false, log:[], winStreak:0 };
 }
 function newSeriesObj(name, settings){
   settings = settings || defaultSettings();
   const base = settings.bankroll * settings.basePct/100;
-  return {
-    id: 's'+Date.now()+Math.random().toString(36).slice(2,7),
-    name,
-    settings,
-    sim: freshSim(base, settings.bankroll)
-  };
+  return { id: 's'+Date.now()+Math.random().toString(36).slice(2,7), name, settings, sim: freshSim(base, settings.bankroll) };
 }
 function loadAppState(){
   try{
@@ -394,6 +452,12 @@ function loadAppState(){
         if(!appState.seriesList.find(s=>s.id===appState.activeSeriesId)){
           appState.activeSeriesId = appState.seriesList[0].id;
         }
+        // migrate: backfill fields that didn't exist in older saved data
+        appState.seriesList.forEach(s=>{
+          if(typeof s.settings.lockInAfter !== 'number') s.settings.lockInAfter = 0;
+          if(typeof s.sim.winStreak !== 'number') s.sim.winStreak = 0;
+        });
+        saveAppState();
         return;
       }
     }
@@ -401,24 +465,16 @@ function loadAppState(){
   const s = newSeriesObj('Series 1');
   appState = { seriesList:[s], activeSeriesId: s.id };
 }
-function saveAppState(){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); }catch(e){}
-}
-function activeSeries(){
-  return appState.seriesList.find(s=>s.id===appState.activeSeriesId) || appState.seriesList[0];
-}
+function saveAppState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); }catch(e){} }
+function activeSeries(){ return appState.seriesList.find(s=>s.id===appState.activeSeriesId) || appState.seriesList[0]; }
 
 /* ---------- simulator ---------- */
 
-function currentBetOdds(){
-  return parseFloat($('in-bet-odds').value) || getParams().odds;
-}
+function currentBetOdds(){ return parseFloat($('in-bet-odds').value) || getParams().odds; }
 function currentStake(){
   const p = getParams();
   const odds = currentBetOdds();
-  if(sim.consecLosses > 0){
-    return recoveryStake(sim.cumulativeLoss, odds, p.profitUnits, p.base);
-  }
+  if(sim.consecLosses > 0) return recoveryStake(sim.cumulativeLoss, odds, p.profitUnits, p.base);
   return sim.progressiveStake;
 }
 function resetSim(){
@@ -437,33 +493,33 @@ function renderSim(){
   $('sim-bankroll').textContent = fmt(sim.bankroll);
   $('sim-count').textContent = sim.count;
   const dots = [];
-  for(let i=0;i<p.maxLoss;i++){
-    dots.push(`<div class="dot ${i < sim.consecLosses ? 'lost' : ''}"></div>`);
-  }
+  for(let i=0;i<p.maxLoss;i++) dots.push(`<div class="dot ${i < sim.consecLosses ? 'lost' : ''}"></div>`);
   $('sim-dots').innerHTML = dots.join('');
   $('sim-fail').style.display = sim.failed ? 'block' : 'none';
   $('btn-win').disabled = sim.failed;
   $('btn-loss').disabled = sim.failed;
   $('log-body').innerHTML = sim.log.slice().reverse().map(l=>
-    `<tr><td>${l.n}</td><td class="num">${fmt(l.stake)}</td><td class="${l.won?'result-win':'result-loss'}">${l.won?'Win':'Loss'}</td><td class="num">${fmt(l.bankrollAfter)}</td></tr>`
+    `<tr><td>${l.n}</td><td class="num">${fmt(l.stake)}</td><td class="${l.won?'result-win':'result-loss'}">${l.won?'Win':'Loss'}${l.lockedIn?' 🔒':''}</td><td class="num">${fmt(l.bankrollAfter)}</td></tr>`
   ).join('');
-
   const netPL = sim.bankroll - sim.startingBankroll;
   const netPLPct = sim.startingBankroll > 0 ? (netPL / sim.startingBankroll * 100) : 0;
   const plEl = $('pl-net');
   plEl.textContent = `${netPL >= 0 ? '+' : ''}${fmt(netPL)} (${netPL >= 0 ? '+' : ''}${netPLPct.toFixed(1)}%)`;
   plEl.style.color = netPL > 0 ? 'var(--win)' : (netPL < 0 ? 'var(--loss)' : 'var(--text)');
-
   $('pl-peak').textContent = fmt(sim.peakBankroll);
   const drawdown = sim.peakBankroll > 0 ? ((sim.peakBankroll - sim.bankroll) / sim.peakBankroll * 100) : 0;
-  const ddEl = $('pl-drawdown');
-  ddEl.textContent = `${drawdown.toFixed(1)}%`;
-  ddEl.style.color = drawdown > 0 ? 'var(--loss)' : 'var(--text)';
-
+  $('pl-drawdown').textContent = `${drawdown.toFixed(1)}%`;
+  $('pl-drawdown').style.color = drawdown > 0 ? 'var(--loss)' : 'var(--text)';
   $('pl-record').textContent = `${sim.wins}W – ${sim.losses}L`;
   const totalBets = sim.wins + sim.losses;
   $('pl-winrate').textContent = totalBets > 0 ? `${(sim.wins/totalBets*100).toFixed(1)}%` : '—';
-
+  const lockEl = $('pl-lockin');
+  if(p.lockInAfter > 0){
+    lockEl.style.display = '';
+    lockEl.textContent = `Win streak: ${sim.winStreak} / ${p.lockInAfter} (locks in gains at ${p.lockInAfter})`;
+  } else {
+    lockEl.style.display = 'none';
+  }
   $('active-series-label').textContent = activeSeries().name;
 }
 function placeBet(won){
@@ -475,36 +531,38 @@ function placeBet(won){
   if(won){
     sim.bankroll += stake * (odds - 1);
     sim.wins += 1;
+    sim.winStreak += 1;
     if(sim.consecLosses > 0){
-      sim.consecLosses = 0;
-      sim.cumulativeLoss = 0;
-      sim.progressiveStake = (p.continueMode === 'smooth')
-        ? sim.preLossStake * (1 + p.growth/100)
-        : p.base;
+      sim.consecLosses = 0; sim.cumulativeLoss = 0;
+      sim.progressiveStake = (p.continueMode === 'smooth') ? sim.preLossStake * (1 + p.growth/100) : p.base;
     } else {
       sim.progressiveStake = stake * (1 + p.growth/100);
     }
-  } else {
-    if(sim.consecLosses === 0){
-      sim.preLossStake = stake;
+    var lockedIn = false;
+    if(p.lockInAfter > 0 && sim.winStreak >= p.lockInAfter){
+      sim.progressiveStake = p.base;
+      sim.preLossStake = p.base;
+      sim.winStreak = 0;
+      lockedIn = true;
     }
+  } else {
+    if(sim.consecLosses === 0) sim.preLossStake = stake;
     sim.bankroll -= stake;
     sim.losses += 1;
+    sim.winStreak = 0;
     sim.consecLosses += 1;
     sim.cumulativeLoss += stake;
-    if(sim.consecLosses >= p.maxLoss){
-      sim.failed = true;
-    }
+    if(sim.consecLosses >= p.maxLoss) sim.failed = true;
   }
   sim.peakBankroll = Math.max(sim.peakBankroll, sim.bankroll);
-  sim.log.push({n:sim.count, stake, won, bankrollAfter: sim.bankroll});
+  sim.log.push({n:sim.count, stake, won, bankrollAfter: sim.bankroll, lockedIn: typeof lockedIn !== 'undefined' && lockedIn});
   $('in-bet-odds').value = p.odds;
   saveAppState();
   renderSim();
   renderSeriesTabs();
 }
 
-/* ---------- series tabs UI ---------- */
+/* ---------- series tabs ---------- */
 
 function renderSeriesTabs(){
   const container = $('series-tabs');
@@ -516,18 +574,11 @@ function renderSeriesTabs(){
       <span class="del" data-del="${s.id}">×</span>
     </div>`;
   }).join('');
-
   container.querySelectorAll('.chip').forEach(chip=>{
-    chip.addEventListener('click', (e)=>{
-      if(e.target.closest('[data-del]')) return;
-      switchSeries(chip.dataset.id);
-    });
+    chip.addEventListener('click', (e)=>{ if(e.target.closest('[data-del]')) return; switchSeries(chip.dataset.id); });
   });
   container.querySelectorAll('[data-del]').forEach(el=>{
-    el.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      deleteSeries(el.dataset.del);
-    });
+    el.addEventListener('click', (e)=>{ e.stopPropagation(); deleteSeries(el.dataset.del); });
   });
   container.querySelectorAll('.chip-name').forEach(nameEl=>{
     nameEl.addEventListener('dblclick', (e)=>{
@@ -548,12 +599,9 @@ function loadActiveSeriesIntoUI(){
   renderSim();
   renderSeriesTabs();
 }
-function switchSeries(id){
-  appState.activeSeriesId = id;
-  saveAppState();
-  loadActiveSeriesIntoUI();
-}
+function switchSeries(id){ appState.activeSeriesId = id; saveAppState(); loadActiveSeriesIntoUI(); }
 function newSeries(){
+  if(!isPro() && appState.seriesList.length >= 1){ showPaywall(); return; }
   const name = window.prompt('Name this series (e.g. "EPL weekend", "Day 1")', 'Series ' + (appState.seriesList.length+1));
   if(!name) return;
   const baseSettings = Object.assign({}, activeSeries().settings);
@@ -564,16 +612,11 @@ function newSeries(){
   loadActiveSeriesIntoUI();
 }
 function deleteSeries(id){
-  if(appState.seriesList.length <= 1){
-    alert('You need at least one series — rename or reset this one instead of deleting it.');
-    return;
-  }
+  if(appState.seriesList.length <= 1){ alert('You need at least one series — rename or reset this one instead.'); return; }
   const s = appState.seriesList.find(x=>x.id===id);
   if(!window.confirm(`Delete "${s.name}"? This can't be undone.`)) return;
   appState.seriesList = appState.seriesList.filter(x=>x.id!==id);
-  if(appState.activeSeriesId === id){
-    appState.activeSeriesId = appState.seriesList[0].id;
-  }
+  if(appState.activeSeriesId === id) appState.activeSeriesId = appState.seriesList[0].id;
   saveAppState();
   loadActiveSeriesIntoUI();
 }
@@ -582,16 +625,10 @@ function deleteSeries(id){
 
 inputs.forEach(id => $(id).addEventListener('input', ()=>{
   renderRequirement();
-  if(sim && sim.count === 0){
-    resetSim();
-  } else {
-    activeSeries().settings = readDOMSettings();
-    saveAppState();
-  }
+  if(sim && sim.count === 0){ resetSim(); }
+  else { activeSeries().settings = readDOMSettings(); saveAppState(); }
 }));
-$('in-bet-odds').addEventListener('input', ()=>{
-  if(sim) renderSim();
-});
+$('in-bet-odds').addEventListener('input', ()=>{ if(sim) renderSim(); });
 $('btn-win').addEventListener('click', ()=>placeBet(true));
 $('btn-loss').addEventListener('click', ()=>placeBet(false));
 $('btn-reset').addEventListener('click', resetSim);
@@ -599,11 +636,10 @@ $('btn-new-series').addEventListener('click', newSeries);
 
 loadAppState();
 loadActiveSeriesIntoUI();
+initGate();
 
 if('serviceWorker' in navigator){
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
-  });
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }
 </script>
 </body>
