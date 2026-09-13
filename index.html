@@ -191,6 +191,13 @@
           <label>Lock in gains after this many wins in a row (0 = off)</label>
           <input type="number" id="in-lockin" value="0" step="1" min="0">
         </div>
+        <div class="field">
+          <label>Lock-in floor</label>
+          <select id="in-lockin-mode">
+            <option value="live" selected>% of current bankroll (grows with you)</option>
+            <option value="fixed">Fixed original base amount</option>
+          </select>
+        </div>
       </div>
       <div class="field" style="margin-top:2px">
         <label>After a successful recovery, next stake starts from</label>
@@ -272,7 +279,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const inputs = ['in-odds','in-base-pct','in-growth','in-profit','in-maxloss','in-bankroll','in-continue','in-lockin'];
+const inputs = ['in-odds','in-base-pct','in-growth','in-profit','in-maxloss','in-bankroll','in-continue','in-lockin','in-lockin-mode'];
 const STORAGE_KEY = 'stakingLedgerAppState_v1';
 const GATE_KEY = 'stakeguard_gate_v1';
 const OB_KEY = 'stakeguard_onboarded_v1';
@@ -349,7 +356,7 @@ $('footer-help-link').addEventListener('click', (e)=>{
 /* ---------- settings / params ---------- */
 
 function defaultSettings(){
-  return { odds:1.5, basePct:15, growth:15, profitUnits:1, maxLoss:3, bankroll:1300, continueMode:'smooth', lockInAfter:0 };
+  return { odds:1.5, basePct:15, growth:15, profitUnits:1, maxLoss:3, bankroll:1300, continueMode:'smooth', lockInAfter:0, lockInMode:'live' };
 }
 function readDOMSettings(){
   return {
@@ -361,6 +368,7 @@ function readDOMSettings(){
     bankroll: parseFloat($('in-bankroll').value) || 0,
     continueMode: $('in-continue').value,
     lockInAfter: parseInt($('in-lockin').value) || 0,
+    lockInMode: $('in-lockin-mode').value,
   };
 }
 function deriveParams(settings){
@@ -377,6 +385,7 @@ function populateForm(settings){
   $('in-bankroll').value = settings.bankroll;
   $('in-continue').value = settings.continueMode;
   $('in-lockin').value = settings.lockInAfter != null ? settings.lockInAfter : 0;
+  $('in-lockin-mode').value = settings.lockInMode || 'live';
 }
 
 /* ---------- recovery math ---------- */
@@ -442,6 +451,20 @@ function newSeriesObj(name, settings){
   const base = settings.bankroll * settings.basePct/100;
   return { id: 's'+Date.now()+Math.random().toString(36).slice(2,7), name, settings, sim: freshSim(base, settings.bankroll) };
 }
+function lockInFloor(s){
+  if(s.settings.lockInMode === 'fixed'){
+    return s.settings.bankroll * s.settings.basePct / 100;
+  }
+  return s.sim.bankroll * s.settings.basePct / 100; // live: scales with actual growth
+}
+function checkLockInForSeries(s){
+  if(s.settings.lockInAfter > 0 && s.sim.consecLosses === 0 && s.sim.winStreak >= s.settings.lockInAfter){
+    const floor = lockInFloor(s);
+    s.sim.progressiveStake = floor;
+    s.sim.preLossStake = floor;
+    s.sim.winStreak = 0;
+  }
+}
 function loadAppState(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -455,7 +478,15 @@ function loadAppState(){
         // migrate: backfill fields that didn't exist in older saved data
         appState.seriesList.forEach(s=>{
           if(typeof s.settings.lockInAfter !== 'number') s.settings.lockInAfter = 0;
-          if(typeof s.sim.winStreak !== 'number') s.sim.winStreak = 0;
+          if(typeof s.sim.winStreak !== 'number'){
+            // derive the real streak from existing bet history instead of zeroing it
+            let streak = 0;
+            for(let i=s.sim.log.length-1; i>=0; i--){
+              if(s.sim.log[i].won) streak++; else break;
+            }
+            s.sim.winStreak = streak;
+          }
+          checkLockInForSeries(s);
         });
         saveAppState();
         return;
@@ -515,8 +546,9 @@ function renderSim(){
   $('pl-winrate').textContent = totalBets > 0 ? `${(sim.wins/totalBets*100).toFixed(1)}%` : '—';
   const lockEl = $('pl-lockin');
   if(p.lockInAfter > 0){
+    const floorPreview = (p.lockInMode === 'fixed') ? p.base : sim.bankroll * p.basePct / 100;
     lockEl.style.display = '';
-    lockEl.textContent = `Win streak: ${sim.winStreak} / ${p.lockInAfter} (locks in gains at ${p.lockInAfter})`;
+    lockEl.textContent = `Win streak: ${sim.winStreak} / ${p.lockInAfter} — next lock-in floor: ${fmt(floorPreview)} (${p.lockInMode === 'fixed' ? 'fixed' : 'scales with bankroll'})`;
   } else {
     lockEl.style.display = 'none';
   }
@@ -540,8 +572,9 @@ function placeBet(won){
     }
     var lockedIn = false;
     if(p.lockInAfter > 0 && sim.winStreak >= p.lockInAfter){
-      sim.progressiveStake = p.base;
-      sim.preLossStake = p.base;
+      const floor = (p.lockInMode === 'fixed') ? p.base : sim.bankroll * p.basePct / 100;
+      sim.progressiveStake = floor;
+      sim.preLossStake = floor;
       sim.winStreak = 0;
       lockedIn = true;
     }
@@ -626,7 +659,7 @@ function deleteSeries(id){
 inputs.forEach(id => $(id).addEventListener('input', ()=>{
   renderRequirement();
   if(sim && sim.count === 0){ resetSim(); }
-  else { activeSeries().settings = readDOMSettings(); saveAppState(); }
+  else { activeSeries().settings = readDOMSettings(); checkLockInForSeries(activeSeries()); saveAppState(); renderSim(); }
 }));
 $('in-bet-odds').addEventListener('input', ()=>{ if(sim) renderSim(); });
 $('btn-win').addEventListener('click', ()=>placeBet(true));
