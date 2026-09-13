@@ -1,7 +1,7 @@
 {
-  "name": "Staking Ledger",
-  "short_name": "Staking Ledger",
-  "description": "Progressive-martingale staking calculator with live simulator and P&L tracking.",
+  "name": "StakeGuard",
+  "short_name": "StakeGuard",
+  "description": "Bankroll and staking-plan calculator with worst-case protection, live simulation, and multi-series tracking.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
