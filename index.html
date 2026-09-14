@@ -81,6 +81,16 @@
   .chip.active{border-color:var(--win);color:var(--text);background:rgba(63,167,150,0.14);}
   .chip .del{color:var(--loss);font-weight:700;padding:0 2px;}
   .btn-new-series{width:100%;margin-top:8px;background:transparent;border:1px dashed var(--border);color:var(--muted);padding:11px;}
+  .dash-summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+  .dash-stat{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:12px;}
+  .dash-stat .num{font-size:1.15rem;font-weight:650;}
+  .dash-stat .label{color:var(--muted);font-size:0.75rem;margin-bottom:3px;}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600;}
+  .badge-active{background:rgba(63,167,150,0.15);color:var(--win);}
+  .badge-stopped{background:rgba(228,87,46,0.15);color:var(--loss);}
+  .badge-goal{background:rgba(217,164,65,0.18);color:var(--amber);}
+  .dash-locked{text-align:center;padding:20px 12px;color:var(--muted);font-size:0.9rem;}
+  .dash-locked button{margin-top:12px;}
   .app-footer{text-align:center;color:var(--muted);font-size:0.76rem;margin-top:30px;line-height:1.7;}
   .app-footer a{color:var(--win);text-decoration:none;}
 
@@ -156,6 +166,11 @@
   </section>
 
   <section>
+    <h2>Dashboard — all series at a glance <span style="opacity:0.6">(Pro)</span></h2>
+    <div class="panel" id="dashboard-panel"></div>
+  </section>
+
+  <section>
     <h2>Plan settings</h2>
     <div class="panel">
       <div class="grid">
@@ -210,6 +225,9 @@
           <option value="base">Base stake (conservative reset)</option>
           <option value="smooth" selected>Pre-loss stake, then +growth% (smooth continuation)</option>
         </select>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn-new-series" id="btn-save-template" style="margin-top:0">💾 Save as template <span style="opacity:0.6">(Pro)</span></button>
       </div>
     </div>
   </section>
@@ -273,6 +291,7 @@
         <button class="btn-loss" id="btn-loss">Loss</button>
         <button class="btn-reset" id="btn-reset">Reset</button>
       </div>
+      <button class="btn-new-series" id="btn-export-csv" style="margin-bottom:14px">⬇ Export bet history (CSV) <span style="opacity:0.6">(Pro)</span></button>
       <div class="log">
         <table><thead><tr><th>#</th><th>Stake</th><th>Result</th><th>Bankroll after</th></tr></thead>
         <tbody id="log-body"></tbody></table>
@@ -292,6 +311,7 @@
 const $ = id => document.getElementById(id);
 const inputs = ['in-odds','in-base-pct','in-growth','in-profit','in-maxloss','in-bankroll','in-continue','in-lockin','in-lockin-mode','in-target-wins'];
 const STORAGE_KEY = 'stakingLedgerAppState_v1';
+const TEMPLATES_KEY = 'stakeguard_templates_v1';
 const GATE_KEY = 'stakeguard_gate_v1';
 const OB_KEY = 'stakeguard_onboarded_v1';
 const PRO_KEY = 'stakeguard_pro_v1';
@@ -612,6 +632,7 @@ function renderSim(){
     goalEl.style.display = 'none';
   }
   $('active-series-label').textContent = activeSeries().name;
+  renderDashboard();
 }
 function placeBet(won){
   if(sim.failed) return;
@@ -656,6 +677,61 @@ function placeBet(won){
 
 /* ---------- series tabs ---------- */
 
+function renderDashboard(){
+  const panel = $('dashboard-panel');
+  if(!isPro()){
+    panel.innerHTML = `<div class="dash-locked">
+      Unlock Pro to see combined P&amp;L, win rate, and status across every series at once — not just one at a time.
+      <br><button class="btn-win" id="dash-unlock-btn" style="margin-top:12px;padding:10px 18px;width:auto">Unlock Pro</button>
+    </div>`;
+    $('dash-unlock-btn').addEventListener('click', showPaywall);
+    return;
+  }
+  const list = appState.seriesList;
+  let totalStart = 0, totalNow = 0, totalWins = 0, totalLosses = 0;
+  list.forEach(s=>{
+    totalStart += s.sim.startingBankroll;
+    totalNow += s.sim.bankroll;
+    totalWins += s.sim.wins;
+    totalLosses += s.sim.losses;
+  });
+  const totalPL = totalNow - totalStart;
+  const totalPLPct = totalStart > 0 ? (totalPL/totalStart*100) : 0;
+  const totalBets = totalWins + totalLosses;
+  const winRate = totalBets > 0 ? (totalWins/totalBets*100) : 0;
+
+  const rows = list.map(s=>{
+    const pl = s.sim.bankroll - s.sim.startingBankroll;
+    const plPct = s.sim.startingBankroll > 0 ? (pl/s.sim.startingBankroll*100) : 0;
+    const target = s.settings.targetWins || 0;
+    let badge = '<span class="badge badge-active">Active</span>';
+    if(s.sim.failed) badge = '<span class="badge badge-stopped">Stopped</span>';
+    else if(target > 0 && s.sim.wins >= target) badge = '<span class="badge badge-goal">🎯 Goal met</span>';
+    return `<tr>
+      <td>${escapeHtml(s.name)}</td>
+      <td>${badge}</td>
+      <td class="num" style="color:${pl>=0?'var(--win)':'var(--loss)'}">${pl>=0?'+':''}${fmt(pl)} (${plPct>=0?'+':''}${plPct.toFixed(1)}%)</td>
+      <td class="num">${s.sim.wins}W–${s.sim.losses}L</td>
+    </tr>`;
+  }).join('');
+
+  panel.innerHTML = `
+    <div class="dash-summary">
+      <div class="dash-stat">
+        <div class="label">Combined Net P&amp;L</div>
+        <div class="num" style="color:${totalPL>=0?'var(--win)':'var(--loss)'}">${totalPL>=0?'+':''}${fmt(totalPL)} (${totalPLPct>=0?'+':''}${totalPLPct.toFixed(1)}%)</div>
+      </div>
+      <div class="dash-stat">
+        <div class="label">Overall win rate</div>
+        <div class="num">${totalBets>0 ? winRate.toFixed(1)+'%' : '—'} <span style="color:var(--muted);font-weight:400;font-size:0.8rem">(${totalWins}W–${totalLosses}L)</span></div>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Series</th><th>Status</th><th>P&amp;L</th><th>Record</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
 function renderSeriesTabs(){
   const container = $('series-tabs');
   container.innerHTML = appState.seriesList.map(s=>{
@@ -692,16 +768,93 @@ function loadActiveSeriesIntoUI(){
   renderSeriesTabs();
 }
 function switchSeries(id){ appState.activeSeriesId = id; saveAppState(); loadActiveSeriesIntoUI(); }
+
+/* ---------- templates (Pro feature) ---------- */
+
+function loadTemplates(){
+  try{
+    const raw = localStorage.getItem(TEMPLATES_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return [];
+}
+function saveTemplates(templates){
+  try{ localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates)); }catch(e){}
+}
+function saveCurrentAsTemplate(){
+  if(!isPro()){ showPaywall(); return; }
+  const name = window.prompt('Name this template (e.g. "My EPL setup")');
+  if(!name) return;
+  const templates = loadTemplates();
+  const settingsCopy = Object.assign({}, activeSeries().settings);
+  const existingIdx = templates.findIndex(t => t.name === name);
+  const entry = { name, settings: settingsCopy };
+  if(existingIdx >= 0) templates[existingIdx] = entry; else templates.push(entry);
+  saveTemplates(templates);
+  alert(`Template "${name}" saved. You'll be able to pick it when creating a new series.`);
+}
 function newSeries(){
   if(!isPro() && appState.seriesList.length >= 1){ showPaywall(); return; }
-  const name = window.prompt('Name this series (e.g. "EPL weekend", "Day 1")', 'Series ' + (appState.seriesList.length+1));
+  const templates = isPro() ? loadTemplates() : [];
+  let baseSettings = Object.assign({}, activeSeries().settings);
+  let defaultName = 'Series ' + (appState.seriesList.length+1);
+  if(templates.length > 0){
+    const list = templates.map(t=>t.name).join(', ');
+    const chosen = window.prompt(`Start from a template? Type a name to use one, or leave blank to copy your current settings.\n\nAvailable templates: ${list}`, '');
+    if(chosen){
+      const match = templates.find(t => t.name.toLowerCase() === chosen.trim().toLowerCase());
+      if(match){
+        baseSettings = Object.assign({}, match.settings);
+        defaultName = match.name;
+      } else {
+        alert(`No template named "${chosen}" — starting from your current settings instead.`);
+      }
+    }
+  }
+  const name = window.prompt('Name this series', defaultName);
   if(!name) return;
-  const baseSettings = Object.assign({}, activeSeries().settings);
   const s = newSeriesObj(name, baseSettings);
   appState.seriesList.push(s);
   appState.activeSeriesId = s.id;
   saveAppState();
   loadActiveSeriesIntoUI();
+}
+
+/* ---------- export (Pro feature) ---------- */
+
+function exportSeriesCSV(){
+  if(!isPro()){ showPaywall(); return; }
+  const s = activeSeries();
+  const p = deriveParams(s.settings);
+  const lines = [];
+  lines.push('StakeGuard export');
+  lines.push(`Series,${s.name}`);
+  lines.push(`Odds,${p.odds}`);
+  lines.push(`Base stake %,${p.basePct}`);
+  lines.push(`Growth %,${p.growth}`);
+  lines.push(`Max consecutive losses,${p.maxLoss}`);
+  lines.push(`Starting bankroll,${s.sim.startingBankroll}`);
+  lines.push(`Current bankroll,${s.sim.bankroll}`);
+  lines.push(`Net P&L,${(s.sim.bankroll - s.sim.startingBankroll).toFixed(2)}`);
+  lines.push(`Peak bankroll,${s.sim.peakBankroll}`);
+  lines.push(`Wins,${s.sim.wins}`);
+  lines.push(`Losses,${s.sim.losses}`);
+  lines.push(`Restarts,${s.sim.restarts || 0}`);
+  lines.push('');
+  lines.push('Bet #,Stake,Result,Bankroll After,Locked In');
+  s.sim.log.forEach(l=>{
+    lines.push(`${l.n},${l.stake.toFixed(2)},${l.won ? 'Win' : 'Loss'},${l.bankrollAfter.toFixed(2)},${l.lockedIn ? 'Yes' : ''}`);
+  });
+  const csv = lines.join('\n');
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `stakeguard-${s.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 function deleteSeries(id){
   if(appState.seriesList.length <= 1){ alert('You need at least one series — rename or reset this one instead.'); return; }
@@ -732,6 +885,8 @@ $('btn-loss').addEventListener('click', ()=>placeBet(false));
 $('btn-reset').addEventListener('click', resetSim);
 $('btn-continue').addEventListener('click', continueAfterStop);
 $('btn-new-series').addEventListener('click', newSeries);
+$('btn-save-template').addEventListener('click', saveCurrentAsTemplate);
+$('btn-export-csv').addEventListener('click', exportSeriesCSV);
 
 loadAppState();
 loadActiveSeriesIntoUI();
