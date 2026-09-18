@@ -91,6 +91,9 @@
   .badge-goal{background:rgba(217,164,65,0.18);color:var(--amber);}
   .dash-locked{text-align:center;padding:20px 12px;color:var(--muted);font-size:0.9rem;}
   .dash-locked button{margin-top:12px;}
+  .strategy-tabs{display:flex;gap:8px;margin-bottom:24px;}
+  .strategy-tab{flex:1;padding:12px 8px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--muted);font-size:0.85rem;font-weight:600;cursor:pointer;}
+  .strategy-tab.active{background:rgba(63,167,150,0.14);border-color:var(--win);color:var(--text);}
   .app-footer{text-align:center;color:var(--muted);font-size:0.76rem;margin-top:30px;line-height:1.7;}
   .app-footer a{color:var(--win);text-decoration:none;}
 
@@ -156,6 +159,13 @@
   <h1>Know your worst case before you stake it.</h1>
   <p class="sub">Progressive-martingale plan at fixed odds: stakes grow on each win, and rebuild after a loss to recover it. Your loss limit stops the plan before it stops you.</p>
 
+  <div class="strategy-tabs">
+    <button class="strategy-tab active" id="tab-martingale" data-strategy="martingale">Martingale + Progressive</button>
+    <button class="strategy-tab" id="tab-flat" data-strategy="flat">Flat Staking</button>
+    <button class="strategy-tab" id="tab-dynamic" data-strategy="dynamic">% Recalculation</button>
+  </div>
+
+  <div id="strategy-martingale">
   <section>
     <h2>Series — switch between running sequences</h2>
     <div class="panel" style="padding:12px 12px 6px">
@@ -173,6 +183,14 @@
   <section>
     <h2>Plan settings</h2>
     <div class="panel">
+      <div class="field" style="margin-bottom:14px">
+        <label>Staking pattern</label>
+        <select id="in-staking-mode">
+          <option value="martingale" selected>Martingale + Progressive (grows on wins, recovers losses)</option>
+          <option value="flat">Flat staking (same fixed stake every bet)</option>
+        </select>
+        <p class="footnote" style="margin-top:4px">Switching patterns applies to your next stake immediately.</p>
+      </div>
       <div class="grid">
         <div class="field">
           <label>Odds (decimal)</label>
@@ -187,11 +205,11 @@
           <label>Base stake amount (computed)</label>
           <input type="text" id="out-base-amount" value="" readonly style="opacity:0.7">
         </div>
-        <div class="field">
+        <div class="field mg-only">
           <label>Growth per win (%)</label>
           <input type="number" id="in-growth" value="15" step="1" min="0">
         </div>
-        <div class="field">
+        <div class="field mg-only">
           <label>Recovery + profit target (× base stake), used in column 2 below</label>
           <input type="number" id="in-profit" value="1" step="0.1" min="0">
         </div>
@@ -203,11 +221,11 @@
           <label>Bankroll</label>
           <input type="number" id="in-bankroll" value="1300" step="10" min="0">
         </div>
-        <div class="field">
+        <div class="field mg-only">
           <label>Lock in gains after this many wins in a row (0 = off)</label>
           <input type="number" id="in-lockin" value="0" step="1" min="0">
         </div>
-        <div class="field">
+        <div class="field mg-only">
           <label>Lock-in floor</label>
           <select id="in-lockin-mode">
             <option value="live" selected>% of current bankroll (grows with you)</option>
@@ -219,7 +237,7 @@
           <input type="number" id="in-target-wins" value="0" step="1" min="0">
         </div>
       </div>
-      <div class="field" style="margin-top:2px">
+      <div class="field mg-only" style="margin-top:2px">
         <label>After a successful recovery, next stake starts from</label>
         <select id="in-continue">
           <option value="base">Base stake (conservative reset)</option>
@@ -298,6 +316,246 @@
       </div>
     </div>
   </section>
+
+  </div>
+
+  <div id="strategy-flat" style="display:none">
+    <p class="sub" style="margin-top:-4px">Flat staking: the same fixed stake, every single bet, win or lose. No growth after wins, no recovery after losses — the lowest-variance approach that exists.</p>
+
+    <section>
+      <h2>Series — switch between running sequences</h2>
+      <div class="panel" style="padding:12px 12px 6px">
+        <div class="chip-row" id="f-series-tabs"></div>
+        <button class="btn-new-series" id="f-btn-new-series">+ New series</button>
+        <p class="footnote" style="margin-top:8px">Double-tap a series name to rename it. Everything saves automatically on this device. Free plan: 1 series.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Dashboard — all flat series at a glance <span style="opacity:0.6">(Pro)</span></h2>
+      <div class="panel" id="f-dashboard-panel"></div>
+    </section>
+
+    <section>
+      <h2>Plan settings</h2>
+      <div class="panel">
+        <div class="grid">
+          <div class="field">
+            <label>Odds (decimal)</label>
+            <input type="number" id="f-in-odds" value="1.5" step="0.01" min="1.01">
+          </div>
+          <div class="field">
+            <label>Stake (% of bankroll)</label>
+            <input type="number" id="f-in-base-pct" value="3" step="0.5" min="0.1">
+            <p class="footnote" style="margin-top:4px">Fixed to your original bankroll — never grows or shrinks with wins or losses. Applies instantly, no reset needed.</p>
+          </div>
+          <div class="field">
+            <label>Stake amount (computed)</label>
+            <input type="text" id="f-out-base-amount" value="" readonly style="opacity:0.7">
+          </div>
+          <div class="field">
+            <label>Bankroll</label>
+            <input type="number" id="f-in-bankroll" value="10000" step="10" min="0">
+          </div>
+          <div class="field">
+            <label>Stop after this many losses in a row (0 = never)</label>
+            <input type="number" id="f-in-maxloss" value="0" step="1" min="0">
+          </div>
+          <div class="field">
+            <label>Goal: total wins for this series (0 = off)</label>
+            <input type="number" id="f-in-target-wins" value="0" step="1" min="0">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn-new-series" id="f-btn-save-template" style="margin-top:0">💾 Save as template <span style="opacity:0.6">(Pro)</span></button>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Cost of a losing streak — no surprises, no explosions</h2>
+      <div class="panel">
+        <p class="footnote" style="margin-bottom:10px">Flat staking's whole appeal: the cost of N losses in a row is always exactly N × your stake — a straight line, not an exponential curve. No worst-case table needed, because there's no escalation to model.</p>
+        <table id="f-req-table"><thead>
+          <tr><th>Losses in a row</th><th>Total cost</th></tr>
+        </thead><tbody></tbody></table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Live simulator — <span id="f-active-series-label">Series 1</span></h2>
+      <div class="panel">
+        <div class="sim-top">
+          <div>
+            <div class="stake-label">Next stake (always the same)</div>
+            <div class="stake-figure num" id="f-sim-stake">100</div>
+          </div>
+          <div class="dots" id="f-sim-dots"></div>
+        </div>
+        <div class="field">
+          <label>Odds for this bet</label>
+          <input type="number" id="f-in-bet-odds" value="1.5" step="0.01" min="1.01">
+        </div>
+        <div class="stat-row">
+          <span>Bankroll: <span class="num" id="f-sim-bankroll">10000</span></span>
+          <span>Bets placed: <span class="num" id="f-sim-count">0</span></span>
+        </div>
+        <div class="panel" style="background:var(--panel-2);margin-bottom:14px;padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+            <span class="stake-label">Net P&L</span>
+            <span class="num" id="f-pl-net" style="font-size:1.3rem;font-weight:650">0 (0.0%)</span>
+          </div>
+          <div class="stat-row" style="margin-bottom:0">
+            <span>Peak bankroll: <span class="num" id="f-pl-peak">0</span></span>
+            <span>Drawdown from peak: <span class="num" id="f-pl-drawdown">0.0%</span></span>
+          </div>
+          <div class="stat-row" style="margin-bottom:0">
+            <span>Record: <span class="num" id="f-pl-record">0W – 0L</span></span>
+            <span>Win rate: <span class="num" id="f-pl-winrate">—</span></span>
+          </div>
+          <p class="footnote" id="f-pl-goal" style="margin-top:6px;display:none"></p>
+        </div>
+        <div id="f-sim-fail" style="display:none" class="fail-banner">
+          Plan stopped — max consecutive losses reached.
+          <div style="margin-top:10px;display:flex;gap:8px">
+            <button class="btn-win" id="f-btn-continue" style="flex:1;padding:10px">Continue series</button>
+          </div>
+          <p class="footnote" style="margin-top:8px;margin-bottom:0">Continue clears the loss-streak counter only — bankroll, record, and history stay intact.</p>
+        </div>
+        <div class="btn-row">
+          <button class="btn-win" id="f-btn-win">Win</button>
+          <button class="btn-loss" id="f-btn-loss">Loss</button>
+          <button class="btn-reset" id="f-btn-reset">Reset</button>
+        </div>
+        <button class="btn-new-series" id="f-btn-export-csv" style="margin-bottom:14px">⬇ Export bet history (CSV) <span style="opacity:0.6">(Pro)</span></button>
+        <div class="log">
+          <table><thead><tr><th>#</th><th>Stake</th><th>Result</th><th>Bankroll after</th></tr></thead>
+          <tbody id="f-log-body"></tbody></table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="strategy-dynamic" style="display:none">
+    <p class="sub" style="margin-top:-4px">% Recalculation: your stake is always N% of whatever your bankroll is right now — recalculated fresh after every single result, win or lose. It shrinks automatically after losses and grows automatically after wins, with no fixed reference point.</p>
+
+    <section>
+      <h2>Series — switch between running sequences</h2>
+      <div class="panel" style="padding:12px 12px 6px">
+        <div class="chip-row" id="d-series-tabs"></div>
+        <button class="btn-new-series" id="d-btn-new-series">+ New series</button>
+        <p class="footnote" style="margin-top:8px">Double-tap a series name to rename it. Everything saves automatically on this device. Free plan: 1 series.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Dashboard — all % Recalculation series at a glance <span style="opacity:0.6">(Pro)</span></h2>
+      <div class="panel" id="d-dashboard-panel"></div>
+    </section>
+
+    <section>
+      <h2>Plan settings</h2>
+      <div class="panel">
+        <div class="grid">
+          <div class="field">
+            <label>Odds (decimal)</label>
+            <input type="number" id="d-in-odds" value="1.5" step="0.01" min="1.01">
+          </div>
+          <div class="field">
+            <label>Stake (% of current bankroll)</label>
+            <input type="number" id="d-in-base-pct" value="15" step="0.5" min="0.1">
+            <p class="footnote" style="margin-top:4px">Recalculated fresh from your live bankroll every bet — no fixed reference point, applies instantly.</p>
+          </div>
+          <div class="field">
+            <label>Starting bankroll</label>
+            <input type="number" id="d-in-bankroll" value="10000" step="10" min="0">
+          </div>
+          <div class="field">
+            <label>Next stake (computed live)</label>
+            <input type="text" id="d-out-base-amount" value="" readonly style="opacity:0.7">
+          </div>
+          <div class="field">
+            <label>Stop if bankroll falls below this % of starting (0 = never)</label>
+            <input type="number" id="d-in-stoploss-pct" value="20" step="1" min="0" max="99">
+          </div>
+          <div class="field">
+            <label>Stop if bankroll falls more than this % below its peak (0 = off) — locks in profit</label>
+            <input type="number" id="d-in-drawdown-stop" value="50" step="1" min="0" max="99">
+          </div>
+          <div class="field">
+            <label>Goal: total wins for this series (0 = off)</label>
+            <input type="number" id="d-in-target-wins" value="0" step="1" min="0">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn-new-series" id="d-btn-save-template" style="margin-top:0">💾 Save as template <span style="opacity:0.6">(Pro)</span></button>
+        </div>
+        <p class="footnote" style="margin-top:10px">These two stops are independent and both active at once: the starting-% stop protects your original capital as an absolute floor; the peak-% stop trails your bankroll upward as you grow, locking in gains by capping how much of a win streak you're allowed to give back. Whichever triggers first stops the plan.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Cost of a losing streak — percentage decay</h2>
+      <div class="panel">
+        <p class="footnote" style="margin-bottom:10px">Because every stake is a % of what's left, a losing streak shrinks your bankroll but mathematically never fully reaches zero — however, the math is asymmetric: <b>lose 50%, and you need a 100% gain just to break even.</b> This table shows what N straight losses actually does at your current %.</p>
+        <table id="d-req-table"><thead>
+          <tr><th>Losses in a row</th><th>% of bankroll remaining</th><th>Amount remaining</th></tr>
+        </thead><tbody></tbody></table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Live simulator — <span id="d-active-series-label">Series 1</span></h2>
+      <div class="panel">
+        <div class="sim-top">
+          <div>
+            <div class="stake-label">Next stake (recalculated live)</div>
+            <div class="stake-figure num" id="d-sim-stake">1500</div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Odds for this bet</label>
+          <input type="number" id="d-in-bet-odds" value="1.5" step="0.01" min="1.01">
+        </div>
+        <div class="stat-row">
+          <span>Bankroll: <span class="num" id="d-sim-bankroll">10000</span></span>
+          <span>Bets placed: <span class="num" id="d-sim-count">0</span></span>
+        </div>
+        <div class="panel" style="background:var(--panel-2);margin-bottom:14px;padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+            <span class="stake-label">Net P&L</span>
+            <span class="num" id="d-pl-net" style="font-size:1.3rem;font-weight:650">0 (0.0%)</span>
+          </div>
+          <div class="stat-row" style="margin-bottom:0">
+            <span>Peak bankroll: <span class="num" id="d-pl-peak">0</span></span>
+            <span>Drawdown from peak: <span class="num" id="d-pl-drawdown">0.0%</span></span>
+          </div>
+          <div class="stat-row" style="margin-bottom:0">
+            <span>Record: <span class="num" id="d-pl-record">0W – 0L</span></span>
+            <span>Win rate: <span class="num" id="d-pl-winrate">—</span></span>
+          </div>
+          <p class="footnote" id="d-pl-goal" style="margin-top:6px;display:none"></p>
+        </div>
+        <div id="d-sim-fail" style="display:none" class="fail-banner">
+          <span id="d-sim-fail-text">Plan stopped.</span>
+          <div style="margin-top:10px;display:flex;gap:8px">
+            <button class="btn-win" id="d-btn-continue" style="flex:1;padding:10px">Continue series</button>
+          </div>
+          <p class="footnote" style="margin-top:8px;margin-bottom:0">Continue clears the stop flag only — bankroll, record, and history stay intact.</p>
+        </div>
+        <div class="btn-row">
+          <button class="btn-win" id="d-btn-win">Win</button>
+          <button class="btn-loss" id="d-btn-loss">Loss</button>
+          <button class="btn-reset" id="d-btn-reset">Reset</button>
+        </div>
+        <button class="btn-new-series" id="d-btn-export-csv" style="margin-bottom:14px">⬇ Export bet history (CSV) <span style="opacity:0.6">(Pro)</span></button>
+        <div class="log">
+          <table><thead><tr><th>#</th><th>Stake</th><th>Result</th><th>Bankroll after</th></tr></thead>
+          <tbody id="d-log-body"></tbody></table>
+        </div>
+      </div>
+    </section>
+  </div>
 
   <div class="app-footer">
     StakeGuard tracks staking math only — it does not place bets or guarantee results.<br>
@@ -888,8 +1146,697 @@ $('btn-new-series').addEventListener('click', newSeries);
 $('btn-save-template').addEventListener('click', saveCurrentAsTemplate);
 $('btn-export-csv').addEventListener('click', exportSeriesCSV);
 
+/* ================= FLAT STAKING — fully separate module ================= */
+
+const F_STORAGE_KEY = 'stakeguardFlatState_v1';
+const F_TEMPLATES_KEY = 'stakeguard_flat_templates_v1';
+const f_inputs = ['f-in-odds','f-in-base-pct','f-in-bankroll','f-in-maxloss','f-in-target-wins'];
+
+function fDefaultSettings(){
+  return { odds:1.5, basePct:3, bankroll:10000, maxLoss:0, targetWins:0 };
+}
+function fReadDOMSettings(){
+  return {
+    odds: parseFloat($('f-in-odds').value) || 1.5,
+    basePct: parseFloat($('f-in-base-pct').value) || 0,
+    bankroll: parseFloat($('f-in-bankroll').value) || 0,
+    maxLoss: parseInt($('f-in-maxloss').value) || 0,
+    targetWins: parseInt($('f-in-target-wins').value) || 0,
+  };
+}
+function fDeriveParams(settings){
+  const stake = settings.bankroll * settings.basePct / 100;
+  return Object.assign({}, settings, {stake});
+}
+function fGetParams(){ return fDeriveParams(fReadDOMSettings()); }
+function fPopulateForm(settings){
+  $('f-in-odds').value = settings.odds;
+  $('f-in-base-pct').value = settings.basePct;
+  $('f-in-bankroll').value = settings.bankroll;
+  $('f-in-maxloss').value = settings.maxLoss;
+  $('f-in-target-wins').value = settings.targetWins;
+}
+function fFreshSim(bankroll){
+  return { consecLosses:0, bankroll, startingBankroll:bankroll, peakBankroll:bankroll,
+    wins:0, losses:0, count:0, failed:false, log:[], restarts:0 };
+}
+function fNewSeriesObj(name, settings){
+  settings = settings || fDefaultSettings();
+  return { id:'f'+Date.now()+Math.random().toString(36).slice(2,7), name, settings, sim: fFreshSim(settings.bankroll) };
+}
+let fAppState = null;
+let fSim = null;
+function fLoadAppState(){
+  try{
+    const raw = localStorage.getItem(F_STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed && Array.isArray(parsed.seriesList) && parsed.seriesList.length){
+        fAppState = parsed;
+        if(!fAppState.seriesList.find(s=>s.id===fAppState.activeSeriesId)){
+          fAppState.activeSeriesId = fAppState.seriesList[0].id;
+        }
+        fAppState.seriesList.forEach(s=>{
+          if(typeof s.sim.restarts !== 'number') s.sim.restarts = 0;
+          if(typeof s.settings.targetWins !== 'number') s.settings.targetWins = 0;
+        });
+        fSaveAppState();
+        return;
+      }
+    }
+  }catch(e){}
+  const s = fNewSeriesObj('Series 1');
+  fAppState = { seriesList:[s], activeSeriesId: s.id };
+}
+function fSaveAppState(){ try{ localStorage.setItem(F_STORAGE_KEY, JSON.stringify(fAppState)); }catch(e){} }
+function fActiveSeries(){ return fAppState.seriesList.find(s=>s.id===fAppState.activeSeriesId) || fAppState.seriesList[0]; }
+
+function fCurrentBetOdds(){ return parseFloat($('f-in-bet-odds').value) || fGetParams().odds; }
+
+function fResetSim(){
+  const s = fActiveSeries();
+  s.settings = fReadDOMSettings();
+  fSim = fFreshSim(s.settings.bankroll);
+  s.sim = fSim;
+  $('f-in-bet-odds').value = s.settings.odds;
+  fSaveAppState();
+  fRenderSim();
+}
+function fContinueAfterStop(){
+  const s = fActiveSeries();
+  if(!s.sim.failed) return;
+  s.sim.consecLosses = 0;
+  s.sim.failed = false;
+  s.sim.restarts = (s.sim.restarts || 0) + 1;
+  fSim = s.sim;
+  fSaveAppState();
+  fRenderSim();
+}
+function fRenderRequirement(){
+  const p = fGetParams();
+  $('f-out-base-amount').value = fmt(p.stake);
+  const tbody = document.querySelector('#f-req-table tbody');
+  const rows = [1,2,3,4,5].map(n => `<tr><td>${n}</td><td class="num">${fmt(p.stake*n)}</td></tr>`);
+  tbody.innerHTML = rows.join('');
+}
+function fRenderSim(){
+  const p = fGetParams();
+  $('f-sim-stake').textContent = fmt(p.stake);
+  $('f-sim-bankroll').textContent = fmt(fSim.bankroll);
+  $('f-sim-count').textContent = fSim.count;
+  const dots = [];
+  const dotCount = p.maxLoss > 0 ? p.maxLoss : 0;
+  for(let i=0;i<dotCount;i++) dots.push(`<div class="dot ${i < fSim.consecLosses ? 'lost' : ''}"></div>`);
+  $('f-sim-dots').innerHTML = dots.join('');
+  $('f-sim-fail').style.display = fSim.failed ? 'block' : 'none';
+  $('f-btn-win').disabled = fSim.failed;
+  $('f-btn-loss').disabled = fSim.failed;
+  $('f-log-body').innerHTML = fSim.log.slice().reverse().map(l=>
+    `<tr><td>${l.n}</td><td class="num">${fmt(l.stake)}</td><td class="${l.won?'result-win':'result-loss'}">${l.won?'Win':'Loss'}</td><td class="num">${fmt(l.bankrollAfter)}</td></tr>`
+  ).join('');
+  const netPL = fSim.bankroll - fSim.startingBankroll;
+  const netPLPct = fSim.startingBankroll > 0 ? (netPL / fSim.startingBankroll * 100) : 0;
+  const plEl = $('f-pl-net');
+  plEl.textContent = `${netPL >= 0 ? '+' : ''}${fmt(netPL)} (${netPL >= 0 ? '+' : ''}${netPLPct.toFixed(1)}%)`;
+  plEl.style.color = netPL > 0 ? 'var(--win)' : (netPL < 0 ? 'var(--loss)' : 'var(--text)');
+  $('f-pl-peak').textContent = fmt(fSim.peakBankroll);
+  const drawdown = fSim.peakBankroll > 0 ? ((fSim.peakBankroll - fSim.bankroll) / fSim.peakBankroll * 100) : 0;
+  $('f-pl-drawdown').textContent = `${drawdown.toFixed(1)}%`;
+  $('f-pl-drawdown').style.color = drawdown > 0 ? 'var(--loss)' : 'var(--text)';
+  $('f-pl-record').textContent = `${fSim.wins}W – ${fSim.losses}L`;
+  const totalBets = fSim.wins + fSim.losses;
+  $('f-pl-winrate').textContent = totalBets > 0 ? `${(fSim.wins/totalBets*100).toFixed(1)}%` : '—';
+  const goalEl = $('f-pl-goal');
+  if(p.targetWins > 0){
+    goalEl.style.display = '';
+    const restartsTxt = fSim.restarts > 0 ? `, ${fSim.restarts} restart${fSim.restarts===1?'':'s'} so far` : '';
+    if(fSim.wins >= p.targetWins){
+      goalEl.style.color = 'var(--win)';
+      goalEl.textContent = `🎯 Goal reached — ${fSim.wins} / ${p.targetWins} total wins${restartsTxt}.`;
+    } else {
+      goalEl.style.color = 'var(--muted)';
+      goalEl.textContent = `Goal progress: ${fSim.wins} / ${p.targetWins} total wins${restartsTxt}.`;
+    }
+  } else {
+    goalEl.style.display = 'none';
+  }
+  $('f-active-series-label').textContent = fActiveSeries().name;
+  fRenderDashboard();
+}
+function fPlaceBet(won){
+  if(fSim.failed) return;
+  const p = fGetParams();
+  const odds = fCurrentBetOdds();
+  const stake = p.stake;
+  fSim.count += 1;
+  if(won){
+    fSim.bankroll += stake * (odds - 1);
+    fSim.wins += 1;
+    fSim.consecLosses = 0;
+  } else {
+    fSim.bankroll -= stake;
+    fSim.losses += 1;
+    fSim.consecLosses += 1;
+    if(p.maxLoss > 0 && fSim.consecLosses >= p.maxLoss) fSim.failed = true;
+  }
+  fSim.peakBankroll = Math.max(fSim.peakBankroll, fSim.bankroll);
+  fSim.log.push({n:fSim.count, stake, won, bankrollAfter: fSim.bankroll});
+  $('f-in-bet-odds').value = p.odds;
+  fSaveAppState();
+  fRenderSim();
+  fRenderSeriesTabs();
+}
+function fRenderSeriesTabs(){
+  const container = $('f-series-tabs');
+  container.innerHTML = fAppState.seriesList.map(s=>{
+    const active = s.id === fAppState.activeSeriesId;
+    const badge = s.sim.failed ? ' ⚠' : '';
+    return `<div class="chip ${active?'active':''}" data-id="${s.id}">
+      <span class="chip-name" data-id="${s.id}">${escapeHtml(s.name)}${badge}</span>
+      <span class="del" data-del="${s.id}">×</span>
+    </div>`;
+  }).join('');
+  container.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click', (e)=>{ if(e.target.closest('[data-del]')) return; fSwitchSeries(chip.dataset.id); });
+  });
+  container.querySelectorAll('[data-del]').forEach(el=>{
+    el.addEventListener('click', (e)=>{ e.stopPropagation(); fDeleteSeries(el.dataset.del); });
+  });
+  container.querySelectorAll('.chip-name').forEach(nameEl=>{
+    nameEl.addEventListener('dblclick', (e)=>{
+      e.stopPropagation();
+      const id = nameEl.dataset.id;
+      const s = fAppState.seriesList.find(x=>x.id===id);
+      const newName = window.prompt('Rename series', s.name);
+      if(newName){ s.name = newName; fSaveAppState(); fRenderSeriesTabs(); fRenderSim(); }
+    });
+  });
+}
+function fLoadActiveSeriesIntoUI(){
+  const s = fActiveSeries();
+  fPopulateForm(s.settings);
+  fSim = s.sim;
+  $('f-in-bet-odds').value = s.settings.odds;
+  fRenderRequirement();
+  fRenderSim();
+  fRenderSeriesTabs();
+}
+function fSwitchSeries(id){ fAppState.activeSeriesId = id; fSaveAppState(); fLoadActiveSeriesIntoUI(); }
+function fLoadTemplates(){
+  try{ const raw = localStorage.getItem(F_TEMPLATES_KEY); if(raw) return JSON.parse(raw); }catch(e){}
+  return [];
+}
+function fSaveTemplates(t){ try{ localStorage.setItem(F_TEMPLATES_KEY, JSON.stringify(t)); }catch(e){} }
+function fSaveCurrentAsTemplate(){
+  if(!isPro()){ showPaywall(); return; }
+  const name = window.prompt('Name this template (e.g. "My flat 3% setup")');
+  if(!name) return;
+  const templates = fLoadTemplates();
+  const entry = { name, settings: Object.assign({}, fActiveSeries().settings) };
+  const idx = templates.findIndex(t=>t.name===name);
+  if(idx>=0) templates[idx] = entry; else templates.push(entry);
+  fSaveTemplates(templates);
+  alert(`Template "${name}" saved.`);
+}
+function fNewSeries(){
+  if(!isPro() && fAppState.seriesList.length >= 1){ showPaywall(); return; }
+  const templates = isPro() ? fLoadTemplates() : [];
+  let baseSettings = Object.assign({}, fActiveSeries().settings);
+  let defaultName = 'Series ' + (fAppState.seriesList.length+1);
+  if(templates.length > 0){
+    const list = templates.map(t=>t.name).join(', ');
+    const chosen = window.prompt(`Start from a template? Type a name, or leave blank to copy current settings.\n\nAvailable: ${list}`, '');
+    if(chosen){
+      const match = templates.find(t => t.name.toLowerCase() === chosen.trim().toLowerCase());
+      if(match){ baseSettings = Object.assign({}, match.settings); defaultName = match.name; }
+      else alert(`No template named "${chosen}" — starting from current settings.`);
+    }
+  }
+  const name = window.prompt('Name this series', defaultName);
+  if(!name) return;
+  const s = fNewSeriesObj(name, baseSettings);
+  fAppState.seriesList.push(s);
+  fAppState.activeSeriesId = s.id;
+  fSaveAppState();
+  fLoadActiveSeriesIntoUI();
+}
+function fDeleteSeries(id){
+  if(fAppState.seriesList.length <= 1){ alert('You need at least one series — rename or reset this one instead.'); return; }
+  const s = fAppState.seriesList.find(x=>x.id===id);
+  if(!window.confirm(`Delete "${s.name}"? This can't be undone.`)) return;
+  fAppState.seriesList = fAppState.seriesList.filter(x=>x.id!==id);
+  if(fAppState.activeSeriesId === id) fAppState.activeSeriesId = fAppState.seriesList[0].id;
+  fSaveAppState();
+  fLoadActiveSeriesIntoUI();
+}
+function fExportSeriesCSV(){
+  if(!isPro()){ showPaywall(); return; }
+  const s = fActiveSeries();
+  const p = fDeriveParams(s.settings);
+  const lines = [];
+  lines.push('StakeGuard Flat Staking export');
+  lines.push(`Series,${s.name}`);
+  lines.push(`Odds,${p.odds}`);
+  lines.push(`Stake %,${p.basePct}`);
+  lines.push(`Starting bankroll,${s.sim.startingBankroll}`);
+  lines.push(`Current bankroll,${s.sim.bankroll}`);
+  lines.push(`Net P&L,${(s.sim.bankroll - s.sim.startingBankroll).toFixed(2)}`);
+  lines.push(`Peak bankroll,${s.sim.peakBankroll}`);
+  lines.push(`Wins,${s.sim.wins}`);
+  lines.push(`Losses,${s.sim.losses}`);
+  lines.push(`Restarts,${s.sim.restarts || 0}`);
+  lines.push('');
+  lines.push('Bet #,Stake,Result,Bankroll After');
+  s.sim.log.forEach(l=>{ lines.push(`${l.n},${l.stake.toFixed(2)},${l.won?'Win':'Loss'},${l.bankrollAfter.toFixed(2)}`); });
+  const csv = lines.join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `stakeguard-flat-${s.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function fRenderDashboard(){
+  const panel = $('f-dashboard-panel');
+  if(!isPro()){
+    panel.innerHTML = `<div class="dash-locked">
+      Unlock Pro to see combined P&amp;L, win rate, and status across every flat-staking series at once.
+      <br><button class="btn-win" id="f-dash-unlock-btn" style="margin-top:12px;padding:10px 18px;width:auto">Unlock Pro</button>
+    </div>`;
+    $('f-dash-unlock-btn').addEventListener('click', showPaywall);
+    return;
+  }
+  const list = fAppState.seriesList;
+  let totalStart=0, totalNow=0, totalWins=0, totalLosses=0;
+  list.forEach(s=>{ totalStart+=s.sim.startingBankroll; totalNow+=s.sim.bankroll; totalWins+=s.sim.wins; totalLosses+=s.sim.losses; });
+  const totalPL = totalNow - totalStart;
+  const totalPLPct = totalStart>0 ? (totalPL/totalStart*100) : 0;
+  const totalBets = totalWins+totalLosses;
+  const winRate = totalBets>0 ? (totalWins/totalBets*100) : 0;
+  const rows = list.map(s=>{
+    const pl = s.sim.bankroll - s.sim.startingBankroll;
+    const plPct = s.sim.startingBankroll>0 ? (pl/s.sim.startingBankroll*100) : 0;
+    const target = s.settings.targetWins || 0;
+    let badge = '<span class="badge badge-active">Active</span>';
+    if(s.sim.failed) badge = '<span class="badge badge-stopped">Stopped</span>';
+    else if(target>0 && s.sim.wins>=target) badge = '<span class="badge badge-goal">🎯 Goal met</span>';
+    return `<tr><td>${escapeHtml(s.name)}</td><td>${badge}</td>
+      <td class="num" style="color:${pl>=0?'var(--win)':'var(--loss)'}">${pl>=0?'+':''}${fmt(pl)} (${plPct>=0?'+':''}${plPct.toFixed(1)}%)</td>
+      <td class="num">${s.sim.wins}W–${s.sim.losses}L</td></tr>`;
+  }).join('');
+  panel.innerHTML = `
+    <div class="dash-summary">
+      <div class="dash-stat"><div class="label">Combined Net P&amp;L</div>
+        <div class="num" style="color:${totalPL>=0?'var(--win)':'var(--loss)'}">${totalPL>=0?'+':''}${fmt(totalPL)} (${totalPLPct>=0?'+':''}${totalPLPct.toFixed(1)}%)</div></div>
+      <div class="dash-stat"><div class="label">Overall win rate</div>
+        <div class="num">${totalBets>0?winRate.toFixed(1)+'%':'—'} <span style="color:var(--muted);font-weight:400;font-size:0.8rem">(${totalWins}W–${totalLosses}L)</span></div></div>
+    </div>
+    <table><thead><tr><th>Series</th><th>Status</th><th>P&amp;L</th><th>Record</th></tr></thead><tbody>${rows}</tbody></table>
+  `;
+}
+
+f_inputs.forEach(id => $(id).addEventListener('input', ()=>{
+  fRenderRequirement();
+  if(fSim && fSim.count === 0){ fResetSim(); }
+  else { fActiveSeries().settings = fReadDOMSettings(); fSaveAppState(); fRenderSim(); }
+}));
+$('f-in-bet-odds').addEventListener('input', ()=>{ if(fSim) fRenderSim(); });
+$('f-btn-win').addEventListener('click', ()=>fPlaceBet(true));
+$('f-btn-loss').addEventListener('click', ()=>fPlaceBet(false));
+$('f-btn-reset').addEventListener('click', fResetSim);
+$('f-btn-continue').addEventListener('click', fContinueAfterStop);
+$('f-btn-new-series').addEventListener('click', fNewSeries);
+$('f-btn-save-template').addEventListener('click', fSaveCurrentAsTemplate);
+$('f-btn-export-csv').addEventListener('click', fExportSeriesCSV);
+
+/* ================= % RECALCULATION — fully separate module ================= */
+
+const D_STORAGE_KEY = 'stakeguardDynamicState_v1';
+const D_TEMPLATES_KEY = 'stakeguard_dynamic_templates_v1';
+const d_inputs = ['d-in-odds','d-in-base-pct','d-in-bankroll','d-in-stoploss-pct','d-in-drawdown-stop','d-in-target-wins'];
+
+function dDefaultSettings(){
+  return { odds:1.5, basePct:15, bankroll:10000, stopLossPct:20, drawdownStopPct:50, targetWins:0 };
+}
+function dReadDOMSettings(){
+  return {
+    odds: parseFloat($('d-in-odds').value) || 1.5,
+    basePct: parseFloat($('d-in-base-pct').value) || 0,
+    bankroll: parseFloat($('d-in-bankroll').value) || 0,
+    stopLossPct: parseFloat($('d-in-stoploss-pct').value) || 0,
+    drawdownStopPct: parseFloat($('d-in-drawdown-stop').value) || 0,
+    targetWins: parseInt($('d-in-target-wins').value) || 0,
+  };
+}
+function dPopulateForm(settings){
+  $('d-in-odds').value = settings.odds;
+  $('d-in-base-pct').value = settings.basePct;
+  $('d-in-bankroll').value = settings.bankroll;
+  $('d-in-stoploss-pct').value = settings.stopLossPct;
+  $('d-in-drawdown-stop').value = settings.drawdownStopPct != null ? settings.drawdownStopPct : 50;
+  $('d-in-target-wins').value = settings.targetWins;
+}
+function dFreshSim(bankroll){
+  return { bankroll, startingBankroll:bankroll, peakBankroll:bankroll,
+    wins:0, losses:0, count:0, failed:false, log:[], restarts:0 };
+}
+function dNewSeriesObj(name, settings){
+  settings = settings || dDefaultSettings();
+  return { id:'d'+Date.now()+Math.random().toString(36).slice(2,7), name, settings, sim: dFreshSim(settings.bankroll) };
+}
+let dAppState = null;
+let dSim = null;
+function dLoadAppState(){
+  try{
+    const raw = localStorage.getItem(D_STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed && Array.isArray(parsed.seriesList) && parsed.seriesList.length){
+        dAppState = parsed;
+        if(!dAppState.seriesList.find(s=>s.id===dAppState.activeSeriesId)){
+          dAppState.activeSeriesId = dAppState.seriesList[0].id;
+        }
+        dAppState.seriesList.forEach(s=>{
+          if(typeof s.sim.restarts !== 'number') s.sim.restarts = 0;
+          if(typeof s.settings.targetWins !== 'number') s.settings.targetWins = 0;
+          if(typeof s.settings.stopLossPct !== 'number') s.settings.stopLossPct = 20;
+          if(typeof s.settings.drawdownStopPct !== 'number') s.settings.drawdownStopPct = 0;
+        });
+        dSaveAppState();
+        return;
+      }
+    }
+  }catch(e){}
+  const s = dNewSeriesObj('Series 1');
+  dAppState = { seriesList:[s], activeSeriesId: s.id };
+}
+function dSaveAppState(){ try{ localStorage.setItem(D_STORAGE_KEY, JSON.stringify(dAppState)); }catch(e){} }
+function dActiveSeries(){ return dAppState.seriesList.find(s=>s.id===dAppState.activeSeriesId) || dAppState.seriesList[0]; }
+
+function dCurrentBetOdds(){ return parseFloat($('d-in-bet-odds').value) || dReadDOMSettings().odds; }
+function dCurrentStake(){
+  const basePct = dReadDOMSettings().basePct;
+  return dSim.bankroll * basePct / 100;
+}
+function dResetSim(){
+  const s = dActiveSeries();
+  s.settings = dReadDOMSettings();
+  dSim = dFreshSim(s.settings.bankroll);
+  s.sim = dSim;
+  $('d-in-bet-odds').value = s.settings.odds;
+  dSaveAppState();
+  dRenderSim();
+}
+function dContinueAfterStop(){
+  const s = dActiveSeries();
+  if(!s.sim.failed) return;
+  s.sim.failed = false;
+  s.sim.stopReason = null;
+  s.sim.restarts = (s.sim.restarts || 0) + 1;
+  dSim = s.sim;
+  dSaveAppState();
+  dRenderSim();
+}
+function dRenderRequirement(){
+  const settings = dReadDOMSettings();
+  const tbody = document.querySelector('#d-req-table tbody');
+  const rows = [1,2,3,4,5].map(n=>{
+    const remainPct = Math.pow(1 - settings.basePct/100, n) * 100;
+    const remainAmt = settings.bankroll * Math.pow(1 - settings.basePct/100, n);
+    return `<tr><td>${n}</td><td class="num">${remainPct.toFixed(1)}%</td><td class="num">${fmt(remainAmt)}</td></tr>`;
+  });
+  tbody.innerHTML = rows.join('');
+  $('d-out-base-amount').value = fmt(dSim ? dCurrentStake() : settings.bankroll * settings.basePct/100);
+}
+function dRenderSim(){
+  const settings = dReadDOMSettings();
+  $('d-sim-stake').textContent = fmt(dCurrentStake());
+  $('d-out-base-amount').value = fmt(dCurrentStake());
+  $('d-sim-bankroll').textContent = fmt(dSim.bankroll);
+  $('d-sim-count').textContent = dSim.count;
+  $('d-sim-fail').style.display = dSim.failed ? 'block' : 'none';
+  if(dSim.failed){
+    const reasonText = dSim.stopReason === 'peak'
+      ? `Plan stopped — bankroll fell more than ${settings.drawdownStopPct}% below its peak of ${fmt(dSim.peakBankroll)}. Profit from that run is locked in.`
+      : `Plan stopped — bankroll fell below ${settings.stopLossPct}% of your starting bankroll.`;
+    $('d-sim-fail-text').textContent = reasonText;
+  }
+  $('d-btn-win').disabled = dSim.failed;
+  $('d-btn-loss').disabled = dSim.failed;
+  $('d-log-body').innerHTML = dSim.log.slice().reverse().map(l=>
+    `<tr><td>${l.n}</td><td class="num">${fmt(l.stake)}</td><td class="${l.won?'result-win':'result-loss'}">${l.won?'Win':'Loss'}</td><td class="num">${fmt(l.bankrollAfter)}</td></tr>`
+  ).join('');
+  const netPL = dSim.bankroll - dSim.startingBankroll;
+  const netPLPct = dSim.startingBankroll > 0 ? (netPL / dSim.startingBankroll * 100) : 0;
+  const plEl = $('d-pl-net');
+  plEl.textContent = `${netPL >= 0 ? '+' : ''}${fmt(netPL)} (${netPL >= 0 ? '+' : ''}${netPLPct.toFixed(1)}%)`;
+  plEl.style.color = netPL > 0 ? 'var(--win)' : (netPL < 0 ? 'var(--loss)' : 'var(--text)');
+  $('d-pl-peak').textContent = fmt(dSim.peakBankroll);
+  const drawdown = dSim.peakBankroll > 0 ? ((dSim.peakBankroll - dSim.bankroll) / dSim.peakBankroll * 100) : 0;
+  $('d-pl-drawdown').textContent = `${drawdown.toFixed(1)}%`;
+  $('d-pl-drawdown').style.color = drawdown > 0 ? 'var(--loss)' : 'var(--text)';
+  $('d-pl-record').textContent = `${dSim.wins}W – ${dSim.losses}L`;
+  const totalBets = dSim.wins + dSim.losses;
+  $('d-pl-winrate').textContent = totalBets > 0 ? `${(dSim.wins/totalBets*100).toFixed(1)}%` : '—';
+  const goalEl = $('d-pl-goal');
+  if(settings.targetWins > 0){
+    goalEl.style.display = '';
+    const restartsTxt = dSim.restarts > 0 ? `, ${dSim.restarts} restart${dSim.restarts===1?'':'s'} so far` : '';
+    if(dSim.wins >= settings.targetWins){
+      goalEl.style.color = 'var(--win)';
+      goalEl.textContent = `🎯 Goal reached — ${dSim.wins} / ${settings.targetWins} total wins${restartsTxt}.`;
+    } else {
+      goalEl.style.color = 'var(--muted)';
+      goalEl.textContent = `Goal progress: ${dSim.wins} / ${settings.targetWins} total wins${restartsTxt}.`;
+    }
+  } else {
+    goalEl.style.display = 'none';
+  }
+  $('d-active-series-label').textContent = dActiveSeries().name;
+  dRenderDashboard();
+}
+function dPlaceBet(won){
+  if(dSim.failed) return;
+  const settings = dReadDOMSettings();
+  const odds = dCurrentBetOdds();
+  const stake = dCurrentStake();
+  dSim.count += 1;
+  if(won){
+    dSim.bankroll += stake * (odds - 1);
+    dSim.wins += 1;
+  } else {
+    dSim.bankroll -= stake;
+    dSim.losses += 1;
+  }
+  dSim.peakBankroll = Math.max(dSim.peakBankroll, dSim.bankroll);
+  dSim.log.push({n:dSim.count, stake, won, bankrollAfter: dSim.bankroll});
+  if(settings.stopLossPct > 0 && dSim.bankroll <= dSim.startingBankroll * settings.stopLossPct / 100){
+    dSim.failed = true;
+    dSim.stopReason = 'starting';
+  } else if(settings.drawdownStopPct > 0 && dSim.bankroll <= dSim.peakBankroll * (1 - settings.drawdownStopPct/100)){
+    dSim.failed = true;
+    dSim.stopReason = 'peak';
+  }
+  $('d-in-bet-odds').value = settings.odds;
+  dSaveAppState();
+  dRenderSim();
+  dRenderSeriesTabs();
+}
+function dRenderSeriesTabs(){
+  const container = $('d-series-tabs');
+  container.innerHTML = dAppState.seriesList.map(s=>{
+    const active = s.id === dAppState.activeSeriesId;
+    const badge = s.sim.failed ? ' ⚠' : '';
+    return `<div class="chip ${active?'active':''}" data-id="${s.id}">
+      <span class="chip-name" data-id="${s.id}">${escapeHtml(s.name)}${badge}</span>
+      <span class="del" data-del="${s.id}">×</span>
+    </div>`;
+  }).join('');
+  container.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click', (e)=>{ if(e.target.closest('[data-del]')) return; dSwitchSeries(chip.dataset.id); });
+  });
+  container.querySelectorAll('[data-del]').forEach(el=>{
+    el.addEventListener('click', (e)=>{ e.stopPropagation(); dDeleteSeries(el.dataset.del); });
+  });
+  container.querySelectorAll('.chip-name').forEach(nameEl=>{
+    nameEl.addEventListener('dblclick', (e)=>{
+      e.stopPropagation();
+      const id = nameEl.dataset.id;
+      const s = dAppState.seriesList.find(x=>x.id===id);
+      const newName = window.prompt('Rename series', s.name);
+      if(newName){ s.name = newName; dSaveAppState(); dRenderSeriesTabs(); dRenderSim(); }
+    });
+  });
+}
+function dLoadActiveSeriesIntoUI(){
+  const s = dActiveSeries();
+  dPopulateForm(s.settings);
+  dSim = s.sim;
+  $('d-in-bet-odds').value = s.settings.odds;
+  dRenderRequirement();
+  dRenderSim();
+  dRenderSeriesTabs();
+}
+function dSwitchSeries(id){ dAppState.activeSeriesId = id; dSaveAppState(); dLoadActiveSeriesIntoUI(); }
+function dLoadTemplates(){
+  try{ const raw = localStorage.getItem(D_TEMPLATES_KEY); if(raw) return JSON.parse(raw); }catch(e){}
+  return [];
+}
+function dSaveTemplates(t){ try{ localStorage.setItem(D_TEMPLATES_KEY, JSON.stringify(t)); }catch(e){} }
+function dSaveCurrentAsTemplate(){
+  if(!isPro()){ showPaywall(); return; }
+  const name = window.prompt('Name this template (e.g. "My 15% recalc setup")');
+  if(!name) return;
+  const templates = dLoadTemplates();
+  const entry = { name, settings: Object.assign({}, dActiveSeries().settings) };
+  const idx = templates.findIndex(t=>t.name===name);
+  if(idx>=0) templates[idx] = entry; else templates.push(entry);
+  dSaveTemplates(templates);
+  alert(`Template "${name}" saved.`);
+}
+function dNewSeries(){
+  if(!isPro() && dAppState.seriesList.length >= 1){ showPaywall(); return; }
+  const templates = isPro() ? dLoadTemplates() : [];
+  let baseSettings = Object.assign({}, dActiveSeries().settings);
+  let defaultName = 'Series ' + (dAppState.seriesList.length+1);
+  if(templates.length > 0){
+    const list = templates.map(t=>t.name).join(', ');
+    const chosen = window.prompt(`Start from a template? Type a name, or leave blank to copy current settings.\n\nAvailable: ${list}`, '');
+    if(chosen){
+      const match = templates.find(t => t.name.toLowerCase() === chosen.trim().toLowerCase());
+      if(match){ baseSettings = Object.assign({}, match.settings); defaultName = match.name; }
+      else alert(`No template named "${chosen}" — starting from current settings.`);
+    }
+  }
+  const name = window.prompt('Name this series', defaultName);
+  if(!name) return;
+  const s = dNewSeriesObj(name, baseSettings);
+  dAppState.seriesList.push(s);
+  dAppState.activeSeriesId = s.id;
+  dSaveAppState();
+  dLoadActiveSeriesIntoUI();
+}
+function dDeleteSeries(id){
+  if(dAppState.seriesList.length <= 1){ alert('You need at least one series — rename or reset this one instead.'); return; }
+  const s = dAppState.seriesList.find(x=>x.id===id);
+  if(!window.confirm(`Delete "${s.name}"? This can't be undone.`)) return;
+  dAppState.seriesList = dAppState.seriesList.filter(x=>x.id!==id);
+  if(dAppState.activeSeriesId === id) dAppState.activeSeriesId = dAppState.seriesList[0].id;
+  dSaveAppState();
+  dLoadActiveSeriesIntoUI();
+}
+function dExportSeriesCSV(){
+  if(!isPro()){ showPaywall(); return; }
+  const s = dActiveSeries();
+  const lines = [];
+  lines.push('StakeGuard % Recalculation export');
+  lines.push(`Series,${s.name}`);
+  lines.push(`Odds,${s.settings.odds}`);
+  lines.push(`Stake %,${s.settings.basePct}`);
+  lines.push(`Stop-loss % (from starting),${s.settings.stopLossPct}`);
+  lines.push(`Drawdown stop % (from peak),${s.settings.drawdownStopPct || 0}`);
+  lines.push(`Starting bankroll,${s.sim.startingBankroll}`);
+  lines.push(`Current bankroll,${s.sim.bankroll}`);
+  lines.push(`Net P&L,${(s.sim.bankroll - s.sim.startingBankroll).toFixed(2)}`);
+  lines.push(`Peak bankroll,${s.sim.peakBankroll}`);
+  lines.push(`Wins,${s.sim.wins}`);
+  lines.push(`Losses,${s.sim.losses}`);
+  lines.push(`Restarts,${s.sim.restarts || 0}`);
+  lines.push('');
+  lines.push('Bet #,Stake,Result,Bankroll After');
+  s.sim.log.forEach(l=>{ lines.push(`${l.n},${l.stake.toFixed(2)},${l.won?'Win':'Loss'},${l.bankrollAfter.toFixed(2)}`); });
+  const csv = lines.join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `stakeguard-pctrecalc-${s.name.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function dRenderDashboard(){
+  const panel = $('d-dashboard-panel');
+  if(!isPro()){
+    panel.innerHTML = `<div class="dash-locked">
+      Unlock Pro to see combined P&amp;L, win rate, and status across every % Recalculation series at once.
+      <br><button class="btn-win" id="d-dash-unlock-btn" style="margin-top:12px;padding:10px 18px;width:auto">Unlock Pro</button>
+    </div>`;
+    $('d-dash-unlock-btn').addEventListener('click', showPaywall);
+    return;
+  }
+  const list = dAppState.seriesList;
+  let totalStart=0, totalNow=0, totalWins=0, totalLosses=0;
+  list.forEach(s=>{ totalStart+=s.sim.startingBankroll; totalNow+=s.sim.bankroll; totalWins+=s.sim.wins; totalLosses+=s.sim.losses; });
+  const totalPL = totalNow - totalStart;
+  const totalPLPct = totalStart>0 ? (totalPL/totalStart*100) : 0;
+  const totalBets = totalWins+totalLosses;
+  const winRate = totalBets>0 ? (totalWins/totalBets*100) : 0;
+  const rows = list.map(s=>{
+    const pl = s.sim.bankroll - s.sim.startingBankroll;
+    const plPct = s.sim.startingBankroll>0 ? (pl/s.sim.startingBankroll*100) : 0;
+    const target = s.settings.targetWins || 0;
+    let badge = '<span class="badge badge-active">Active</span>';
+    if(s.sim.failed) badge = '<span class="badge badge-stopped">Stopped</span>';
+    else if(target>0 && s.sim.wins>=target) badge = '<span class="badge badge-goal">🎯 Goal met</span>';
+    return `<tr><td>${escapeHtml(s.name)}</td><td>${badge}</td>
+      <td class="num" style="color:${pl>=0?'var(--win)':'var(--loss)'}">${pl>=0?'+':''}${fmt(pl)} (${plPct>=0?'+':''}${plPct.toFixed(1)}%)</td>
+      <td class="num">${s.sim.wins}W–${s.sim.losses}L</td></tr>`;
+  }).join('');
+  panel.innerHTML = `
+    <div class="dash-summary">
+      <div class="dash-stat"><div class="label">Combined Net P&amp;L</div>
+        <div class="num" style="color:${totalPL>=0?'var(--win)':'var(--loss)'}">${totalPL>=0?'+':''}${fmt(totalPL)} (${totalPLPct>=0?'+':''}${totalPLPct.toFixed(1)}%)</div></div>
+      <div class="dash-stat"><div class="label">Overall win rate</div>
+        <div class="num">${totalBets>0?winRate.toFixed(1)+'%':'—'} <span style="color:var(--muted);font-weight:400;font-size:0.8rem">(${totalWins}W–${totalLosses}L)</span></div></div>
+    </div>
+    <table><thead><tr><th>Series</th><th>Status</th><th>P&amp;L</th><th>Record</th></tr></thead><tbody>${rows}</tbody></table>
+  `;
+}
+
+d_inputs.forEach(id => $(id).addEventListener('input', ()=>{
+  dRenderRequirement();
+  if(dSim && dSim.count === 0){ dResetSim(); }
+  else { dActiveSeries().settings = dReadDOMSettings(); dSaveAppState(); dRenderSim(); }
+}));
+$('d-in-bet-odds').addEventListener('input', ()=>{ if(dSim) dRenderSim(); });
+$('d-btn-win').addEventListener('click', ()=>dPlaceBet(true));
+$('d-btn-loss').addEventListener('click', ()=>dPlaceBet(false));
+$('d-btn-reset').addEventListener('click', dResetSim);
+$('d-btn-continue').addEventListener('click', dContinueAfterStop);
+$('d-btn-new-series').addEventListener('click', dNewSeries);
+$('d-btn-save-template').addEventListener('click', dSaveCurrentAsTemplate);
+$('d-btn-export-csv').addEventListener('click', dExportSeriesCSV);
+
+/* ---------- strategy switcher ---------- */
+
+const STRATEGY_KEY = 'stakeguard_active_strategy';
+function switchStrategy(mode){
+  $('strategy-martingale').style.display = mode === 'martingale' ? 'block' : 'none';
+  $('strategy-flat').style.display = mode === 'flat' ? 'block' : 'none';
+  $('strategy-dynamic').style.display = mode === 'dynamic' ? 'block' : 'none';
+  $('tab-martingale').classList.toggle('active', mode === 'martingale');
+  $('tab-flat').classList.toggle('active', mode === 'flat');
+  $('tab-dynamic').classList.toggle('active', mode === 'dynamic');
+  try{ localStorage.setItem(STRATEGY_KEY, mode); }catch(e){}
+}
+$('tab-martingale').addEventListener('click', ()=>switchStrategy('martingale'));
+$('tab-flat').addEventListener('click', ()=>switchStrategy('flat'));
+$('tab-dynamic').addEventListener('click', ()=>switchStrategy('dynamic'));
+
 loadAppState();
 loadActiveSeriesIntoUI();
+fLoadAppState();
+fLoadActiveSeriesIntoUI();
+dLoadAppState();
+dLoadActiveSeriesIntoUI();
+let savedStrategy = 'martingale';
+try{ savedStrategy = localStorage.getItem(STRATEGY_KEY) || 'martingale'; }catch(e){}
+switchStrategy(savedStrategy);
 initGate();
 
 if('serviceWorker' in navigator){
