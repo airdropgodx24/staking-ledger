@@ -11,22 +11,24 @@
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;line-height:1.6;padding:28px 18px 64px;}
-  .wrap{max-width:680px;margin:0 auto;}
+  .wrap{max-width:700px;margin:0 auto;}
   a{color:var(--win);}
   h1{font-size:1.6rem;font-weight:700;margin:0 0 4px;}
   .tagline{color:var(--win);font-size:0.85rem;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;margin:0 0 18px;}
   h2{font-size:1.1rem;font-weight:700;margin:32px 0 10px;border-top:1px solid var(--border);padding-top:24px;}
   h2:first-of-type{border-top:none;padding-top:0;margin-top:8px;}
+  h3{font-size:0.95rem;font-weight:700;color:var(--win);margin:20px 0 8px;}
   p{color:var(--text);font-size:0.94rem;}
   .callout{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:0.9rem;color:var(--muted);margin:12px 0;}
   .callout b{color:var(--text);}
   ul{padding-left:20px;}
   li{margin-bottom:8px;font-size:0.92rem;}
-  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:0.85rem;}
-  th{background:var(--panel-2);color:var(--win);text-align:left;padding:8px 10px;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.02em;}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:0.83rem;}
+  th{background:var(--panel-2);color:var(--win);text-align:left;padding:8px 10px;font-size:0.76rem;text-transform:uppercase;letter-spacing:0.02em;}
   td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
   tr:nth-child(even) td{background:var(--panel);}
   .back{display:inline-block;margin-bottom:20px;color:var(--muted);text-decoration:none;font-size:0.88rem;}
+  .strategy-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:0.72rem;font-weight:700;margin-bottom:10px;background:rgba(63,167,150,0.15);color:var(--win);}
 </style>
 </head>
 <body>
@@ -34,7 +36,7 @@
   <a href="index.html" class="back">← Back to StakeGuard</a>
   <p class="tagline">StakeGuard</p>
   <h1>Complete User Guide</h1>
-  <p><b>What this app is:</b> a bankroll and staking-plan calculator. It tracks the math of a staking plan you define — it does <b>not</b> place bets, connect to bookmakers, or guarantee any outcome.</p>
+  <p><b>What this app is:</b> a bankroll and staking-plan calculator with three independent staking strategies built in. It tracks the math of a staking plan you define — it does <b>not</b> place bets, connect to bookmakers, or guarantee any outcome.</p>
   <div class="callout"><b>Before anything else:</b> betting carries real financial risk. Never stake money you can't afford to lose. If betting stops being fun, stop.</div>
 
   <h2>1. Getting Started (first time only)</h2>
@@ -43,65 +45,87 @@
     <li><b>3-slide walkthrough</b> — a quick tour of worst-case math, parallel series, and the auto-stop rule. Shows once; skip anytime.</li>
   </ul>
 
-  <h2>2. Series — Running One or More Staking Plans</h2>
-  <p>Each <b>series</b> is a fully independent staking plan: its own odds, bankroll, stake settings, live progress, and history.</p>
+  <h2>2. Choosing a Strategy</h2>
+  <p>StakeGuard has three completely independent staking strategies, switchable by tab at the top of the app. Each keeps its own series, settings, and history — nothing is shared between them.</p>
   <table>
-    <tr><th>Advantage</th><td>Run separate plans side by side — one per league, one per day, one per bankroll — without them interfering with each other.</td></tr>
-    <tr><th>Limit</th><td>Free version tracks 1 series at a time. Adding a 2nd prompts a Pro unlock.</td></tr>
-    <tr><th>Actions</th><td>+ New series to create · tap a chip to switch · double-tap a name to rename · tap × to delete (must keep at least one).</td></tr>
+    <tr><th>Strategy</th><th>Stake changes based on</th><th>Best for</th><th>Main risk</th></tr>
+    <tr><td><b>Martingale + Progressive</b></td><td>Grows after wins, rebuilds bigger after losses to recover them</td><td>Squeezing more from a winning streak, if you're comfortable with recovery math</td><td>Exponential exposure — a loss streak can cost far more than it looks like upfront</td></tr>
+    <tr><td><b>Flat Staking</b></td><td>Never changes — same fixed stake every bet, always</td><td>Lowest-drama, most predictable approach; good for testing if you have real edge</td><td>No recovery mechanism — a loss is just a loss, no upside compounding either</td></tr>
+    <tr><td><b>% Recalculation</b></td><td>Always a fixed % of your <i>current</i> bankroll — shrinks after losses, grows after wins automatically</td><td>Letting your stake size track your real bankroll without manual intervention</td><td>Percentage losses and gains aren't symmetric — a 50% loss needs a 100% gain to recover</td></tr>
   </table>
 
-  <h2>3. Plan Settings — The Core Numbers</h2>
+  <h2>3. Martingale + Progressive</h2>
+  <span class="strategy-badge">STRATEGY 1</span>
+  <p>Stakes grow 15%-style on each win, and rebuild after a loss to recover it — with a hard stop after N consecutive losses.</p>
   <table>
-    <tr><th>Setting</th><th>What it does</th><th>Advantage</th><th>Watch out for</th></tr>
-    <tr><td>Odds (decimal)</td><td>The payout odds you're betting at (e.g. 1.5)</td><td>Sets the foundation for every calculation</td><td>Get this exactly right — small differences change every number</td></tr>
-    <tr><td>Base stake (% of bankroll)</td><td>Your starting stake, as a % of bankroll</td><td>Scales automatically; applies instantly, even mid-series</td><td>Higher % = bigger swings and much higher risk of ruin</td></tr>
-    <tr><td>Growth per win (%)</td><td>How much your stake increases after each win</td><td>Lets winning streaks compound</td><td>Higher growth = bigger exposure before a loss lands</td></tr>
-    <tr><td>Recovery + profit target (× base)</td><td>On a loss, next stake recovers the loss plus this many base-stakes of profit</td><td>A win after a loss nets real gain, not just breakeven</td><td>Bigger target = much higher bankroll requirement</td></tr>
-    <tr><td>Max consecutive losses</td><td>Hard stop after this many losses in a row</td><td>Caps worst-case exposure at a known number</td><td>Raising it needs a much bigger bankroll to stay safe</td></tr>
-    <tr><td>Bankroll</td><td>Your total staking bankroll for this series</td><td>—</td><td>Fixed number — does not auto-update as your real bankroll grows</td></tr>
-    <tr><td>Recovery continuation mode</td><td>Base stake reset, or pre-loss stake + growth% (smooth)</td><td>Smooth keeps progressive growth intact through a recovered loss</td><td>Also bigger exposure if another loss follows</td></tr>
-    <tr><td>Lock in gains after N wins</td><td>Stake drops to a floor after N wins in a row. 0 = off</td><td>Meaningfully reduces ruin risk during hot streaks</td><td>Also caps compounding upside — a real trade-off</td></tr>
-    <tr><td>Lock-in floor</td><td>Live (% of current bankroll) or Fixed (original base)</td><td>Live mode lets the floor grow with real progress</td><td>Fixed mode ignores growth you've already earned</td></tr>
-    <tr><td>Goal: total wins</td><td>Target win count with live progress. 0 = off</td><td>Turns a long series into a trackable goal</td><td>Counts total wins across restarts, not an unbroken streak</td></tr>
+    <tr><th>Setting</th><th>What it does</th><th>Watch out for</th></tr>
+    <tr><td>Odds (decimal)</td><td>Payout odds you're betting at</td><td>Get this exactly right — it drives every other number</td></tr>
+    <tr><td>Base stake (% of bankroll)</td><td>Starting stake as a % of bankroll; applies instantly, even mid-series</td><td>Higher % = bigger swings and much higher risk of ruin</td></tr>
+    <tr><td>Growth per win (%)</td><td>How much stake increases after each win</td><td>Higher growth = bigger exposure before a loss lands</td></tr>
+    <tr><td>Recovery + profit target</td><td>On a loss, next stake recovers the loss plus this many base-stakes of profit</td><td>Bigger target = much higher bankroll requirement</td></tr>
+    <tr><td>Max consecutive losses</td><td>Hard stop after this many losses in a row</td><td>Raising it needs a much bigger bankroll to stay safe</td></tr>
+    <tr><td>Recovery continuation mode</td><td>Reset to base, or pre-loss stake + growth% (smooth)</td><td>Smooth mode means bigger exposure if another loss follows a hot streak</td></tr>
+    <tr><td>Lock in gains after N wins</td><td>Stake drops to a floor after N wins in a row (0 = off)</td><td>Also caps compounding upside during that streak — a real trade-off</td></tr>
+    <tr><td>Lock-in floor</td><td>Live (% of current bankroll) or Fixed (original base)</td><td>Fixed mode ignores growth you've already earned</td></tr>
+    <tr><td>Goal: total wins</td><td>Target win count with live progress (0 = off)</td><td>Counts total wins across restarts, not an unbroken streak</td></tr>
   </table>
+  <div class="callout"><b>Important caveat:</b> the bankroll requirement table assumes a loss streak starts fresh from base. If it starts mid-way through a growing win streak (before lock-in resets it), the real cost can be higher than shown. Tighter lock-in narrows this gap.</div>
 
-  <h2>4. Bankroll Requirement Table — Know Your Worst Case</h2>
-  <p>Shows what a full run of consecutive losses would cost, in two columns: <b>Recovery only</b> (breakeven) and <b>Recovery + profit</b> (your actual target). Green means covered; red means not. A live note shows your maximum safe base %.</p>
-  <div class="callout"><b>Important caveat:</b> this worst case assumes a loss streak starts fresh from base. If it starts mid-way through a growing win streak (before lock-in resets it), the real cost can be higher than shown. Tighter lock-in narrows this gap.</div>
+  <h2>4. Flat Staking</h2>
+  <span class="strategy-badge">STRATEGY 2</span>
+  <p>The same fixed stake, every single bet, win or lose. No growth, no recovery — the lowest-variance approach that exists.</p>
+  <table>
+    <tr><th>Setting</th><th>What it does</th></tr>
+    <tr><td>Stake (% of bankroll)</td><td>Fixed to your <i>original</i> bankroll — never grows or shrinks with results</td></tr>
+    <tr><td>Stop after N losses in a row (0 = never)</td><td>Optional discipline stop, since there's no built-in escalation to cap</td></tr>
+    <tr><td>Goal: total wins</td><td>Same mechanism as Martingale — target and live progress</td></tr>
+  </table>
+  <p>Because the stake never escalates, the cost of a losing streak is always exactly N × stake — a straight line, not a curve. No worst-case table needed; the math is that simple.</p>
 
-  <h2>5. Live Simulator</h2>
-  <ul>
-    <li><b>Next stake</b> — recalculated live</li>
-    <li><b>Odds for this bet</b> — override the plan's default odds per bet</li>
-    <li><b>Win / Loss</b> — record real outcomes; everything updates automatically</li>
-    <li><b>P&amp;L panel</b> — net profit/loss, peak bankroll, drawdown, record, win rate, streak/lock-in and goal progress</li>
-    <li><b>Continue series vs Reset</b> — Continue resets stake progression only (bankroll, record, history stay intact); Reset is a full wipe</li>
-  </ul>
-  <div class="callout"><b>Be clear-eyed:</b> Continue does not undo losses — it only resets the math going forward.</div>
+  <h2>5. % Recalculation</h2>
+  <span class="strategy-badge">STRATEGY 3</span>
+  <p>Your stake is always N% of whatever your bankroll is <i>right now</i> — recalculated fresh after every result. It shrinks automatically after losses and grows automatically after wins, with two independent safety stops.</p>
+  <table>
+    <tr><th>Setting</th><th>What it does</th></tr>
+    <tr><td>Stake (% of current bankroll)</td><td>Recalculated live every bet — no fixed reference point</td></tr>
+    <tr><td>Stop if bankroll falls below X% of starting</td><td>An absolute floor protecting your original capital</td></tr>
+    <tr><td>Stop if bankroll falls more than X% below peak</td><td>A trailing stop that locks in gains — rises automatically as your bankroll grows, so a hot streak's profit can't fully evaporate before the plan halts</td></tr>
+    <tr><td>Goal: total wins</td><td>Same mechanism as the other two strategies</td></tr>
+  </table>
+  <p>Both stops run at once; whichever triggers first stops the plan, and the banner tells you specifically which one fired.</p>
+  <div class="callout"><b>The core math trap of this strategy:</b> percentage losses and gains aren't symmetric. Lose 50% of your bankroll, and you need a <b>100% gain</b> just to break even. The in-app "percentage decay" table shows exactly what N straight losses does at your chosen %.</div>
 
-  <h2>6. Everything Saves Automatically</h2>
-  <p>Settings, live stake, streaks, P&amp;L, and full bet log save to your device after every action. Nothing resets unless you tap Reset yourself.</p>
+  <h2>6. Shared Features (Every Strategy)</h2>
+  <h3>Series</h3>
+  <p>Each series is a fully independent staking plan within its strategy: its own settings, live progress, and history. Create multiple, switch between them by tapping a chip, rename by double-tapping, delete with the × (must keep at least one per strategy).</p>
+  <h3>Dashboard <span style="opacity:0.7">(Pro)</span></h3>
+  <p>Combined net P&amp;L, overall win rate, and a per-series status table — rolled up across every series <i>within that strategy</i>. Each strategy has its own separate dashboard.</p>
+  <h3>Continue vs Reset</h3>
+  <p>Once a plan stops (loss cap, or a stop-loss threshold), you get two choices: <b>Continue series</b> resets only the triggering condition — bankroll, win/loss record, and full history stay intact. <b>Reset</b> is a full wipe back to your starting bankroll and zero wins.</p>
+  <h3>Save as Template <span style="opacity:0.7">(Pro)</span></h3>
+  <p>Save your current settings under a name, then pick it when creating a new series instead of retyping every field. Templates are separate per strategy.</p>
+  <h3>Export Bet History (CSV) <span style="opacity:0.7">(Pro)</span></h3>
+  <p>Downloads your full settings summary, P&amp;L, and bet-by-bet log for the active series as a CSV file, openable in any spreadsheet app.</p>
+  <h3>Everything Saves Automatically</h3>
+  <p>Settings, live stake, streaks, P&amp;L, and full bet logs save to your device after every action, for all three strategies independently. Nothing resets unless you tap Reset yourself.</p>
 
   <h2>7. Free vs Pro</h2>
   <table>
     <tr><th></th><th>Free</th><th>Pro</th></tr>
-    <tr><td>Series</td><td>1 at a time</td><td>Unlimited, in parallel</td></tr>
-    <tr><td>Settings, simulator, P&amp;L, lock-in, goals</td><td>Full access</td><td>Full access</td></tr>
+    <tr><td>Series per strategy</td><td>1 at a time, in each strategy</td><td>Unlimited, running in parallel</td></tr>
+    <tr><td>Dashboard, templates, export</td><td>Locked</td><td>Full access, in every strategy</td></tr>
+    <tr><td>All settings, simulators, P&amp;L</td><td>Full access</td><td>Full access</td></tr>
   </table>
+  <div class="callout">Since each strategy keeps completely separate data, free accounts get <b>one free series per strategy</b> — meaning up to 3 series total (one Martingale, one Flat, one % Recalculation) before Pro is needed. Pro unlocks unlimited series within each.</div>
 
   <h2>8. Quick-Start Settings for a Novice</h2>
-  <ul>
-    <li>Base stake: 3–5% of bankroll (not 10%+)</li>
-    <li>Recovery + profit target: 0 to start</li>
-    <li>Max consecutive losses: 3</li>
-    <li>Lock-in: every 2–3 wins, floor mode Live</li>
-    <li>Goal: leave at 0 until comfortable</li>
-  </ul>
-  <p>Then confirm both bankroll-requirement banners are green before placing a single real bet.</p>
+  <p><b>Martingale + Progressive:</b> base stake 3–5% (not 10%+), recovery + profit target 0 to start, max consecutive losses 3, lock-in every 2–3 wins on Live floor mode.</p>
+  <p><b>Flat Staking:</b> stake 2–5% of bankroll, optional stop after 5–8 losses in a row for discipline.</p>
+  <p><b>% Recalculation:</b> stake 5–10% (15% is aggressive — 10 straight losses at 15% leaves ~20% of your bankroll), starting stop-loss 20%, peak drawdown stop 30–50%.</p>
+  <p>Whatever strategy you pick, confirm the relevant worst-case or decay table looks acceptable to you before placing a single real bet.</p>
 
   <h2>A Final Word</h2>
-  <div class="callout">No setting changes the underlying math of martingale-style staking: it can control how you lose or grow, but it cannot guarantee you don't lose. If gambling ever stops feeling like something you're in control of, reach out to a national gambling helpline in your country — free, confidential support exists.</div>
+  <div class="callout">No setting, in any of the three strategies, changes the underlying truth: staking pattern controls <i>how</i> you win or lose, not <i>whether</i> your bets have real edge. If your actual win rate doesn't exceed what the odds imply, every strategy loses money over enough bets — some just show it to you slower or faster than others. If gambling ever stops feeling like something you're in control of, reach out to a national gambling helpline in your country — free, confidential support exists.</div>
 
   <a href="index.html" class="back" style="margin-top:20px">← Back to StakeGuard</a>
 </div>
